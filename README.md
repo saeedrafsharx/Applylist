@@ -18,7 +18,7 @@
 
 **Pro:**
 - 🗂️ **Supervisor database** — faculty entries mirrored from universities' own public directories, searchable by research area, savable straight into your list
-- ✨ **AI assistant** — drafts cold emails and follow-ups against the contacts you already track, reviews your own drafts, answers questions about the process. English or Persian.
+- ✨ **AI assistant** — drafts cold emails and follow-ups against the contacts you already track, reviews your own drafts, answers questions about the process. English or Persian. Runs on any OpenAI-compatible provider.
 
 **For the operator:**
 - 📊 **Admin panel** — users, subscriptions, payments, activity log, catalog editing, scraper control, takedown queue
@@ -57,7 +57,7 @@ docker-compose exec db createdb -U applylist applylist_test
 pytest
 ```
 
-The suite needs a real Postgres (the app uses JSONB, `date_trunc`, `ilike`) and **drops and recreates the `public` schema** of whatever `TEST_DATABASE_URL` points at. Never aim it at a database you care about. No network is used — SMTP, Zarinpal, and Claude are all disabled in the fixtures.
+The suite needs a real Postgres (the app uses JSONB, `date_trunc`, `ilike`) and **drops and recreates the `public` schema** of whatever `TEST_DATABASE_URL` points at. Never aim it at a database you care about. No network is used — SMTP, Zarinpal, and the model provider are all disabled in the fixtures.
 
 ---
 
@@ -72,7 +72,9 @@ Every setting is an environment variable; `.env.example` lists them all with com
 | `BASE_URL` | Used to build verification and payment-callback links. Must be the real public URL. |
 | `SMTP_*` | Without these, signup verification emails are logged, not delivered. |
 | `ZARINPAL_MERCHANT_ID` | Enables online payment. Keep `ZARINPAL_SANDBOX=true` until you've tested the full loop. |
-| `ANTHROPIC_API_KEY` | Enables the AI assistant. |
+| `OPENAI_API_KEY` | Enables the AI assistant. |
+| `OPENAI_BASE_URL` | Point at any OpenAI-compatible provider. Blank = `api.openai.com`, which is **not reachable from Iran** — set this if the server is hosted there. |
+| `OPENAI_MODEL` | Default `gpt-4o-mini`. Raise it if draft quality matters more than cost. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Creates or promotes the first admin on boot. |
 
 Each integration degrades on its own: an unset key disables that feature and says so on the admin dashboard, rather than breaking the app.
@@ -110,7 +112,7 @@ If you deploy this and charge for catalog access, the legal position on republis
 
 ## Stack
 
-FastAPI · SQLAlchemy 2.0 · Alembic · PostgreSQL · Jinja2 · Tailwind (CDN) · Zarinpal · Claude (`claude-opus-5`)
+FastAPI · SQLAlchemy 2.0 · Alembic · PostgreSQL · Jinja2 · Tailwind (CDN) · Zarinpal · any OpenAI-compatible model provider
 
 No frontend build step. Server-rendered HTML throughout.
 

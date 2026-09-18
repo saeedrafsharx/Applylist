@@ -15,9 +15,9 @@ from ..models import AIMessage, AIUsage, Contact, Conversation, Position, User
 log = logging.getLogger(__name__)
 
 try:  # the app must still boot (and admin must still work) without the SDK
-    import anthropic
+    import openai
 except ImportError:  # pragma: no cover
-    anthropic = None  # type: ignore[assignment]
+    openai = None  # type: ignore[assignment]
 
 
 class AIError(RuntimeError):
@@ -71,11 +71,27 @@ class AIReply:
 
 
 def _client():
-    if anthropic is None:
+    """
+    An OpenAI-protocol client.
+
+    `OPENAI_BASE_URL` lets this point at anything speaking the same protocol —
+    OpenAI, a gateway, a reseller, or a self-hosted server — so the provider is
+    a deployment decision rather than a code change.
+    """
+    if openai is None:
         raise AIError("The AI assistant isn't installed on this server.")
     if not settings.ai_enabled:
         raise AIError("The AI assistant isn't configured yet. Please contact support.")
-    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+    kwargs: dict = {
+        "api_key": settings.openai_api_key,
+        "timeout": settings.ai_timeout_seconds,
+    }
+    if settings.openai_base_url:
+        kwargs["base_url"] = settings.openai_base_url.rstrip("/")
+    if settings.openai_organization:
+        kwargs["organization"] = settings.openai_organization
+    return openai.OpenAI(**kwargs)
 
 
 def current_period() -> str:
@@ -146,13 +162,29 @@ def _user_context(db: Session, user: User) -> str:
 def _history(db: Session, conversation: Conversation) -> list[dict]:
     turns = settings.ai_history_turns * 2
     msgs = [m for m in conversation.messages if not m.error]
-    out: list[dict] = []
-    for m in msgs[-turns:]:
-        out.append({"role": m.role, "content": m.content})
-    # The API requires the first message to be from the user.
+    out: list[dict] = [{"role": m.role, "content": m.content} for m in msgs[-turns:]]
     while out and out[0]["role"] != "user":
         out.pop(0)
     return out
+
+
+def _usage_counts(response) -> tuple[int, int]:
+    """
+    Token counts, tolerating providers that omit or rename them.
+
+    OpenAI-compatible gateways are inconsistent here; a missing `usage` block
+    must not break the turn, it just means the rollup under-counts.
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return 0, 0
+    prompt = getattr(usage, "prompt_tokens", None)
+    completion = getattr(usage, "completion_tokens", None)
+    if prompt is None:
+        prompt = getattr(usage, "input_tokens", 0)
+    if completion is None:
+        completion = getattr(usage, "output_tokens", 0)
+    return int(prompt or 0), int(completion or 0)
 
 
 def send_message(
@@ -162,7 +194,7 @@ def send_message(
     user_text: str,
 ) -> AIMessage:
     """
-    Append the user's turn, call Claude, persist and return the reply.
+    Append the user's turn, call the model, persist and return the reply.
 
     Raises QuotaExceeded before spending anything if the user is out of quota.
     """
@@ -173,8 +205,8 @@ def send_message(
         raise AIError("That message is too long. Please shorten it.")
 
     quota = quota_for(db, user)
-    usage = get_usage(db, user.id)
-    if usage.message_count >= quota:
+    usage_row = get_usage(db, user.id)
+    if usage_row.message_count >= quota:
         raise QuotaExceeded(
             f"You've used all {quota} assistant messages for this month. "
             "Your quota resets at the start of next month."
@@ -192,75 +224,84 @@ def send_message(
     db.flush()
     db.refresh(conversation)
 
-    messages = _history(db, conversation)
-    if not messages:
-        messages = [{"role": "user", "content": user_text}]
+    history = _history(db, conversation) or [{"role": "user", "content": user_text}]
+    # The stable instructions go first so providers that cache prompt prefixes
+    # (OpenAI does this automatically) get a hit on the long half.
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + _user_context(db, user)},
+        *history,
+    ]
 
     client = _client()
     started = time.monotonic()
     try:
-        with client.messages.stream(
-            model=settings.anthropic_model,
-            max_tokens=settings.ai_max_tokens,
-            system=[
-                {
-                    "type": "text",
-                    "text": SYSTEM_PROMPT,
-                    "cache_control": {"type": "ephemeral"},
-                },
-                {"type": "text", "text": _user_context(db, user)},
-            ],
-            thinking={"type": "adaptive"},
-            output_config={"effort": settings.ai_effort},
+        response = client.chat.completions.create(
+            model=settings.openai_model,
             messages=messages,
-        ) as stream:
-            response = stream.get_final_message()
-    except anthropic.NotFoundError as exc:
-        log.exception("Claude model not found")
-        raise AIError("The assistant is misconfigured (unknown model).") from exc
-    except anthropic.AuthenticationError as exc:
-        log.exception("Claude auth failed")
+            max_tokens=settings.ai_max_tokens,
+            temperature=settings.ai_temperature,
+        )
+    except openai.AuthenticationError as exc:
+        log.exception("AI auth failed")
         raise AIError("The assistant isn't authenticated. Please contact support.") from exc
-    except anthropic.RateLimitError as exc:
+    except openai.PermissionDeniedError as exc:
+        log.exception("AI permission denied")
+        raise AIError(
+            "The assistant was refused by the provider. This is often a region "
+            "restriction — check the server's OPENAI_BASE_URL."
+        ) from exc
+    except openai.NotFoundError as exc:
+        log.exception("AI model not found: %s", settings.openai_model)
+        raise AIError(
+            f"The configured model ({settings.openai_model}) isn't available on this provider."
+        ) from exc
+    except openai.RateLimitError as exc:
         raise AIError("The assistant is busy right now. Please try again in a moment.") from exc
-    except anthropic.APIStatusError as exc:
-        log.exception("Claude API error %s", exc.status_code)
+    except openai.BadRequestError as exc:
+        log.exception("AI rejected the request")
+        raise AIError("The assistant couldn't process that request.") from exc
+    except openai.APIStatusError as exc:
+        log.exception("AI API error %s", exc.status_code)
         if exc.status_code >= 500:
             raise AIError("The assistant is temporarily unavailable. Try again shortly.") from exc
         raise AIError("The assistant couldn't process that request.") from exc
-    except anthropic.APIConnectionError as exc:
-        log.exception("Claude connection error")
+    except openai.APIConnectionError as exc:
+        log.exception("AI connection error")
         raise AIError("Couldn't reach the assistant. Check the server's connection.") from exc
 
     latency_ms = int((time.monotonic() - started) * 1000)
 
-    if response.stop_reason == "refusal":
+    choice = response.choices[0] if response.choices else None
+    finish = getattr(choice, "finish_reason", None) if choice else None
+    text = ((getattr(choice, "message", None).content if choice else "") or "").strip()
+
+    if finish == "content_filter":
         text = (
             "I can't help with that request. If you think this is a mistake, "
             "try rephrasing what you need."
         )
-    else:
-        text = "\n\n".join(
-            block.text for block in response.content if block.type == "text"
-        ).strip()
+    elif finish == "length" and text:
+        text += "\n\n[The reply was cut off at the length limit.]"
     if not text:
         text = "I didn't manage to produce a reply. Please try rephrasing."
+
+    input_tokens, output_tokens = _usage_counts(response)
 
     reply = AIMessage(
         conversation_id=conversation.id,
         role=AIMessage.ROLE_ASSISTANT,
         content=text,
-        model=response.model,
-        input_tokens=response.usage.input_tokens,
-        output_tokens=response.usage.output_tokens,
+        model=getattr(response, "model", settings.openai_model),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
         latency_ms=latency_ms,
         created_at=datetime.now(timezone.utc),
     )
     db.add(reply)
 
-    usage.message_count += 1
-    usage.input_tokens += response.usage.input_tokens
-    usage.output_tokens += response.usage.output_tokens
+    usage_row.message_count += 1
+    usage_row.input_tokens += input_tokens
+    usage_row.output_tokens += output_tokens
 
     if conversation.title == "New conversation":
         conversation.title = user_text[:80] + ("…" if len(user_text) > 80 else "")

@@ -25,7 +25,7 @@ os.environ.setdefault("BASE_URL", "http://testserver")
 # Keep the suite offline: no SMTP, no gateway, no model calls.
 os.environ["SMTP_HOST"] = ""
 os.environ["ZARINPAL_MERCHANT_ID"] = ""
-os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["OPENAI_API_KEY"] = ""
 os.environ["ADMIN_EMAIL"] = ""
 
 

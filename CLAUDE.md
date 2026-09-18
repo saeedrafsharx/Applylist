@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ApplyList — a server-rendered FastAPI app for tracking professor outreach and open positions during graduate and research applications. Deployed at http://applylist.ir/.
 
-Four surfaces: **Professors** and **Positions** (free, per-user tracking), **Database** (paid — a catalog of faculty mirrored from public university directories), and **Assistant** (paid — Claude-backed email drafting and Q&A). Plus a full **admin panel** at `/admin`.
+Four surfaces: **Professors** and **Positions** (free, per-user tracking), **Database** (paid — a catalog of faculty mirrored from public university directories), and **Assistant** (paid — email drafting and Q&A via any OpenAI-compatible provider). Plus a full **admin panel** at `/admin`.
 
 ## Commands
 
@@ -40,7 +40,7 @@ Full stack in containers: `docker-compose up --build`. The entrypoint waits for 
 
 ## Configuration
 
-Everything comes from the environment via `app/config.py` (pydantic-settings); `.env.example` documents every key. Features degrade rather than crash when unconfigured — `settings.email_enabled`, `.payments_enabled`, `.ai_enabled` gate the SMTP, Zarinpal, and Claude integrations, and the admin dashboard shows which are live. With SMTP unset, verification links are written to the log instead of sent, so local signup still works.
+Everything comes from the environment via `app/config.py` (pydantic-settings); `.env.example` documents every key. Features degrade rather than crash when unconfigured — `settings.email_enabled`, `.payments_enabled`, `.ai_enabled` gate the SMTP, Zarinpal, and model-provider integrations, and the admin dashboard shows which are live. With SMTP unset, verification links are written to the log instead of sent, so local signup still works.
 
 `DATABASE_URL` accepts the `postgres://` and `postgresql://` forms hosts hand out; a validator rewrites them to `postgresql+psycopg://`.
 
@@ -105,7 +105,9 @@ Removal requests at `/database/takedown` are reachable **without an account**, d
 
 ### The assistant
 
-`services/ai.py` wraps the Anthropic SDK: `claude-opus-5`, adaptive thinking, effort from `AI_EFFORT`, streaming with `get_final_message()`. The system prompt is split into a cached block (the stable instructions) and an uncached block (a compact snapshot of the user's own contacts and positions), so the long half is a cache hit across turns.
+`services/ai.py` speaks the OpenAI chat-completions protocol via the `openai` SDK. `OPENAI_BASE_URL` retargets the client at any compatible provider — OpenAI, a gateway, a reseller, self-hosted — so switching provider is a deployment change, not a code change. This matters operationally: `api.openai.com` is not reachable from Iran, where the app is hosted.
+
+The system prompt puts the stable instructions first and the per-user snapshot (their contacts and positions) second, so providers that cache prompt prefixes get a hit on the long half. `_usage_counts()` tolerates providers that omit or rename the `usage` block — compatible gateways are inconsistent there, and a missing count must not break the turn.
 
 Quota is enforced against the `AIUsage` monthly rollup **before** the API call, so an over-quota user costs nothing. The prompt forbids inventing a student's background — missing details become `[bracketed placeholders]`. Keep that property if you edit the prompt; it's the difference between a useful draft and one that lies to a professor.
 

@@ -45,11 +45,17 @@ class Settings(BaseSettings):
     # Zarinpal v4 quotes amounts in Rial. Prices below are Rial per period.
     zarinpal_currency: str = "IRR"
 
-    # ── Claude ──────────────────────────────────────────────────
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-opus-5"
-    ai_effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
-    ai_max_tokens: int = 8000
+    # ── AI assistant (OpenAI-compatible) ────────────────────────
+    # `openai_base_url` points the client at any service that speaks the
+    # OpenAI chat-completions protocol - OpenAI itself, a gateway, a reseller,
+    # or something self-hosted. Leave it blank for api.openai.com.
+    openai_api_key: str = ""
+    openai_base_url: str = ""
+    openai_model: str = "gpt-4o-mini"
+    openai_organization: str = ""
+    ai_temperature: float = 0.7
+    ai_max_tokens: int = 4000
+    ai_timeout_seconds: float = 90.0
     ai_monthly_message_quota: int = 300
     ai_history_turns: int = 20
 
@@ -87,7 +93,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_enabled(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return bool(self.openai_api_key)
 
     @property
     def payments_enabled(self) -> bool:

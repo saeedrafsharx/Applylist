@@ -27,7 +27,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
       BASE_URL: ${BASE_URL:-http://localhost:8000}
       ENVIRONMENT: ${ENVIRONMENT:-dev}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
       ZARINPAL_SANDBOX: ${ZARINPAL_SANDBOX:-true}
       SMTP_HOST: ${SMTP_HOST:-}
