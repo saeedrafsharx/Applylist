@@ -36,7 +36,7 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-Full stack in containers: `docker-compose up --build`. The entrypoint waits for Postgres and runs `alembic upgrade head` before starting uvicorn — migrations deliberately happen there, not at app startup, so multiple workers can't race each other.
+Full stack in containers: `docker-compose up --build`. The image CMD runs `python -m app.prestart` (waits for Postgres, runs `alembic upgrade head`) before starting uvicorn — migrations deliberately happen there, not at app startup, so multiple workers can't race each other.
 
 ## Configuration
 

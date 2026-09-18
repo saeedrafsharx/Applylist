@@ -34,7 +34,7 @@ cp .env.example .env    # then edit it — at minimum SECRET_KEY and DATABASE_UR
 docker-compose up --build
 ```
 
-Open <http://localhost:8000>. The entrypoint waits for Postgres and applies migrations before serving.
+Open <http://localhost:8000>. The container waits for Postgres and applies migrations before serving.
 
 ### Local development
 
