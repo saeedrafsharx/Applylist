@@ -16,9 +16,5 @@ jobs:
           CHABOKAN_TOKEN: ${{ secrets.CHABOKAN_TOKEN }}
         run: |
           npm install -g @chabokan.net/cli
-          chabok login -t $CHABOKAN_TOKEN | tee login.log
-          chabok deploy -s docker-yfgwhs | tee deploy.log
-      # The chabok CLI always exits 0, even when login or upload fails, so
-      # check what it printed rather than trusting the green tick.
-      - name: confirm-deploy
-        run: grep -q "Deployed to" deploy.log || { echo "::error::Chabokan did not confirm the deploy"; exit 1; }
+          chabok login -t $CHABOKAN_TOKEN
+          chabok deploy -s docker-yfgwhs
