@@ -48,36 +48,51 @@
     </section>
 
     <section class="card">
-      <div class="card-header"><h3 class="card-title">Subscription</h3></div>
-      <form method="post" action="/admin/users/{{ u.id }}/subscription">
-        <div class="card-body grid gap-4">
-          <p class="text-muted">
-            {% if current_sub %}
-              Currently <strong class="text-fg">{{ current_sub.plan.name }}</strong>
-              {% if current_sub.expires_at %}until {{ current_sub.expires_at | dt('%Y-%m-%d') }} ({{ current_sub.days_remaining }} days){% else %}for life{% endif %}
-              · granted via {{ current_sub.source }}
-            {% else %}No active subscription (Free).{% endif %}
-          </p>
-          <label class="field">
-            <span class="label">Plan</span>
-            <select name="plan_code" class="input">
-              {% for p in plans %}<option value="{{ p.code }}">{{ p.name }}{% if p.duration_days %} ({{ p.duration_days }}d){% else %} (lifetime){% endif %}</option>{% endfor %}
-              <option value="__revoke__">— Revoke current subscription —</option>
-            </select>
-          </label>
-          <div class="grid sm:grid-cols-2 gap-4">
+      <div class="card-header">
+        <h3 class="card-title">Subscription</h3>
+        {% if current_sub %}<span class="badge badge-success">{{ current_sub.plan.name }}</span>{% else %}<span class="badge">Free</span>{% endif %}
+      </div>
+      <div class="card-body grid gap-4">
+        <p class="text-muted">
+          {% if current_sub %}
+            On <strong class="text-fg">{{ current_sub.plan.name }}</strong>
+            {% if current_sub.expires_at %}until {{ current_sub.expires_at | dt('%Y-%m-%d') }} ({{ current_sub.days_remaining }} days left){% else %}for life{% endif %},
+            granted via {{ current_sub.source }}. Granting the same plan again extends it.
+          {% else %}No active subscription — this user is on the free plan.{% endif %}
+        </p>
+
+        <form method="post" action="/admin/users/{{ u.id }}/subscription" class="grid gap-3">
+          <div class="grid sm:grid-cols-2 gap-3">
             <label class="field">
-              <span class="label">Days <span class="label-optional">(override)</span></span>
-              <input name="days" placeholder="Plan default" class="input" />
+              <span class="label">Days <span class="label-optional">(optional)</span></span>
+              <input name="days" inputmode="numeric" placeholder="Plan default" class="input" />
             </label>
             <label class="field">
-              <span class="label">Note</span>
+              <span class="label">Note <span class="label-optional">(optional)</span></span>
               <input name="note" placeholder="e.g. outage compensation" class="input" />
             </label>
           </div>
-        </div>
-        <div class="card-footer"><button class="btn btn-primary btn-sm">Apply</button></div>
-      </form>
+          <div class="flex flex-wrap gap-2">
+            {% for p in plans if not p.is_free %}
+              {% set same = current_sub and current_sub.plan_id == p.id %}
+              <button name="plan_code" value="{{ p.code }}" class="btn {{ 'btn-secondary' if same else 'btn-primary' }} btn-sm">
+                {{ ui.icon('plus', 13) }}{{ 'Extend' if same else 'Grant' }} {{ p.name }}
+                <span class="opacity-70">({{ (p.duration_days ~ 'd') if p.duration_days else 'lifetime' }})</span>
+              </button>
+            {% else %}
+              <span class="text-muted">No paid plans are active — enable one under Plans.</span>
+            {% endfor %}
+          </div>
+        </form>
+
+        {% if current_sub %}
+        <form method="post" action="/admin/users/{{ u.id }}/subscription" class="pt-3 border-t border-line"
+              data-confirm="Revoke {{ current_sub.plan.name }} from {{ u.username }}? They drop to the free plan immediately.">
+          <input type="hidden" name="plan_code" value="__revoke__" />
+          <button class="btn btn-danger-ghost btn-sm">Revoke {{ current_sub.plan.name }}</button>
+        </form>
+        {% endif %}
+      </div>
     </section>
   </div>
 

@@ -419,6 +419,10 @@ def set_subscription(
     if plan is None:
         set_flash(request, "Unknown plan.", "error")
         return RedirectResponse(f"/admin/users/{user_id}", status_code=303)
+    if plan.is_free:
+        # "Granting" Free would supersede a paid plan - a silent downgrade.
+        set_flash(request, "To move someone to the free plan, revoke their subscription.", "warning")
+        return RedirectResponse(f"/admin/users/{user_id}", status_code=303)
 
     override: Optional[int] = None
     if days.strip():
