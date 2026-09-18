@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
+from ..i18n import _
 from ..deps import get_current_user, render, require_user, set_flash
 from ..models import EmailToken, User
 from ..schemas import LoginForm, RegisterForm
@@ -152,7 +153,7 @@ def register(
         return render(
             request,
             "auth/register.html",
-            {"error": f"That {field} is already registered.", "values": values},
+            {"error": _("That username is already registered.") if field == "username" else _("That email is already registered."), "values": values},
             status_code=400,
         )
 
@@ -174,7 +175,7 @@ def register(
     request.session["uid"] = user.id
     set_flash(
         request,
-        f"Welcome, {user.username}. We sent a confirmation link to {user.email}.",
+        _("Welcome, {username}. We sent a confirmation link to {email}.", username=user.username, email=user.email),
         "success",
     )
     return RedirectResponse("/verify-email", status_code=303)
@@ -198,8 +199,7 @@ def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
             request,
             "auth/verify_email.html",
             {
-                "error": "That confirmation link is invalid or has expired. "
-                "Sign in and request a new one.",
+                "error": "That confirmation link is invalid or has expired. Sign in and request a new one.",
                 "email_enabled": settings.email_enabled,
             },
             status_code=400,
@@ -226,15 +226,14 @@ def resend_verification(
     if _recent_token_count(db, user.id, EmailToken.PURPOSE_VERIFY) >= VERIFY_RESEND_LIMIT:
         set_flash(
             request,
-            "You've requested several confirmation emails recently. Please wait a while "
-            "before trying again, and check your spam folder.",
+            _("You've requested several confirmation emails recently. Please wait a while before trying again, and check your spam folder."),
             "warning",
         )
         return RedirectResponse("/verify-email", status_code=303)
 
     _send_verification(db, user)
     log_activity(db, Action.VERIFY_RESENT, user_id=user.id, request=request)
-    set_flash(request, f"Sent a fresh confirmation link to {user.email}.", "success")
+    set_flash(request, _("Sent a fresh confirmation link to {email}.", email=user.email), "success")
     return RedirectResponse("/verify-email", status_code=303)
 
 

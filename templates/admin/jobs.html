@@ -41,7 +41,7 @@
             <td>{{ j.level or '—' }}</td>
             <td class="cell-muted max-w-md truncate">{{ j.description or '' }}</td>
             <td class="text-right">
-              <form method="post" action="/admin/jobs/{{ j.id }}/delete" onsubmit="return confirm('Delete this title?')">
+              <form method="post" action="/admin/jobs/{{ j.id }}/delete" data-confirm="Delete this title?">
                 <button class="icon-btn hover:text-danger" title="Delete" aria-label="Delete">{{ ui.icon('trash', 15) }}</button>
               </form>
             </td>

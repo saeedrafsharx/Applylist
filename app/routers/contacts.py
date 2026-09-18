@@ -12,7 +12,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import render, require_verified, set_flash, subscription_context
+from ..i18n import _
+from ..deps import render, require_verified, safe_back, set_flash, subscription_context
 from ..models import Contact, User
 from ..schemas import ContactForm
 from ..services.audit import Action, log_activity
@@ -131,7 +132,7 @@ def add_contact(
         db, Action.CONTACT_CREATED, user_id=user.id, request=request,
         target_type="contact", target_id=contact.id, summary=f"Added {contact.name}",
     )
-    set_flash(request, f"Added {contact.name}.", "success")
+    set_flash(request, _("Added {name}.", name=contact.name), "success")
     return RedirectResponse("/professors", status_code=303)
 
 
@@ -199,7 +200,7 @@ def edit_contact(
         db, Action.CONTACT_UPDATED, user_id=user.id, request=request,
         target_type="contact", target_id=contact.id, summary=f"Updated {contact.name}",
     )
-    set_flash(request, f"Saved {contact.name}.", "success")
+    set_flash(request, _("Saved {name}.", name=contact.name), "success")
     return RedirectResponse("/professors", status_code=303)
 
 
@@ -223,6 +224,7 @@ def delete_contact(
 
 @router.post("/toggle-email/{contact_id}")
 def toggle_email(
+    request: Request,
     contact_id: int,
     user: User = Depends(require_verified),
     db: Session = Depends(get_db),
@@ -231,11 +233,13 @@ def toggle_email(
     if contact is not None:
         contact.email_sent = not contact.email_sent
         contact.email_sent_at = datetime.now(timezone.utc) if contact.email_sent else None
-    return RedirectResponse("/professors", status_code=303)
+    # Back to wherever the click came from (filtered list, dashboard), not the bare list.
+    return RedirectResponse(safe_back(request, "/professors"), status_code=303)
 
 
 @router.post("/toggle-reminder/{contact_id}")
 def toggle_reminder(
+    request: Request,
     contact_id: int,
     user: User = Depends(require_verified),
     db: Session = Depends(get_db),
@@ -243,7 +247,7 @@ def toggle_reminder(
     contact = _owned(db, user, contact_id)
     if contact is not None:
         contact.reminder_sent = not contact.reminder_sent
-    return RedirectResponse("/professors", status_code=303)
+    return RedirectResponse(safe_back(request, "/professors"), status_code=303)
 
 
 # ── CSV ─────────────────────────────────────────────────────────

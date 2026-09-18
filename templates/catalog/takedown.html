@@ -1,44 +1,42 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Remove a listing · ApplyList{% endblock %}
+{% block title %}{{ _("Remove a listing") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto pt-6">
   {% if submitted %}
     <div class="card card-body text-center">
       <div class="empty-icon">{{ ui.icon('check-circle', 18) }}</div>
-      <h1 class="text-lg font-semibold">Request received</h1>
+      <h1 class="text-lg font-semibold">{{ _("Request received") }}</h1>
       <p class="mt-2 text-muted">
-        The entry has been hidden from search straight away, and a person will review the
-        request. You don't need to do anything else.
+        {{ _("The entry has been hidden from search straight away, and a person will review the request. You don't need to do anything else.") }}
       </p>
-      <a href="/" class="btn btn-secondary mt-5">Back home</a>
+      <a href="/" class="btn btn-secondary mt-5">{{ _("Back home") }}</a>
     </div>
   {% else %}
     <div class="mb-6">
-      <h1 class="page-title">Remove a listing</h1>
+      <h1 class="page-title">{{ _("Remove a listing") }}</h1>
       <p class="page-subtitle">
-        Our catalog mirrors faculty directories that universities publish themselves. If you're
-        listed and would rather not be, tell us and we'll take the entry down — no account needed.
+        {{ _("Our catalog mirrors faculty directories that universities publish themselves. If you're listed and would rather not be, tell us and we'll take the entry down — no account needed.") }}
       </p>
     </div>
 
     <div class="card card-body">
-      <form method="post" action="/database/takedown" class="grid grid-cols-1 gap-4">
+      <form method="post" action="/database/takedown" class="grid gap-4">
         <input type="hidden" name="professor_id" value="{{ entry.id if entry else 0 }}" />
         <label class="field">
-          <span class="label">Name as listed</span>
+          <span class="label">{{ _("Name as listed") }}</span>
           <input name="subject_name" required value="{{ entry.name if entry else '' }}" class="input" />
         </label>
         <label class="field">
-          <span class="label">Your email <span class="label-optional">(optional)</span></span>
+          <span class="label">{{ _("Your email") }} <span class="label-optional">({{ _("optional") }})</span></span>
           <input type="email" name="requester_email" class="input" />
-          <span class="hint">Only so we can confirm it's done.</span>
+          <span class="hint">{{ _("Only so we can confirm it's done.") }}</span>
         </label>
         <label class="field">
-          <span class="label">Anything you want to add <span class="label-optional">(optional)</span></span>
+          <span class="label">{{ _("Anything you want to add") }} <span class="label-optional">({{ _("optional") }})</span></span>
           <textarea name="reason" rows="3" class="input"></textarea>
         </label>
-        <button class="btn btn-primary btn-block">Submit request</button>
+        <button class="btn btn-primary btn-block">{{ _("Submit request") }}</button>
       </form>
     </div>
   {% endif %}

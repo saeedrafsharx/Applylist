@@ -73,6 +73,10 @@ Dependencies in `deps.py` must be **functions, not callable classes**. This modu
 
 Ownership is still checked per-row inside handlers (`if obj.owner_id != user.id`), since no dependency can know which row a path parameter refers to. Contacts and positions each have a small `_owned()` helper; use it.
 
+### Middleware order
+
+Starlette runs the **last-added** middleware first. `SessionMiddleware` is added last in `main.py` so the session is decoded before `LanguageMiddleware` and `UserStateMiddleware` run; added earlier, `UserStateMiddleware` never sees the session and `request.state.user` is always `None` (this was a real bug: `last_seen_at` never updated and some pages rendered a logged-out nav).
+
 ### Two ways to reach the current user
 
 `UserStateMiddleware` puts a **detached, read-only** user on `request.state.user` so `base.html` can render the nav on every page. Anything that writes must use the session-bound user from `Depends(require_user)` and friends. Writing through the middleware's object silently does nothing.
@@ -126,6 +130,16 @@ Colours live in `static/app.css` as RGB tokens (`--fg`, `--muted`, `--surface`, 
 `partials/ui.html` has the shared macros — `icon()` (inline SVG), `empty()`, `stat()`, `status_badge()`; import it per template (`{% import "partials/ui.html" as ui %}`), since imports in `base.html` don't reach child blocks. A single-column `grid` wrapper around a wide table needs `grid-cols-1`, or the table stretches the page instead of scrolling.
 
 Every page extends `base.html`. `render()` in `deps.py` injects `request`, `user`, and the popped `flash` — use it rather than `TemplateResponse` directly, or the flash will stick around. Filters: `| dt`, `| d`, `| toman`.
+
+### Languages (English / Farsi)
+
+`app/i18n/` holds the whole mechanism. Strings are written in English and wrapped in `_()` — in templates (`{{ _("Save changes") }}`, `{{ _("{n} days left", n=days) }}`) and in Python (`from ..i18n import _`). `app/i18n/fa.py` maps each English string to Farsi; a missing key falls back to English. `tests/test_i18n.py` fails when a template string has no Farsi entry or a translation's `{placeholders}` don't match its key, so add the translation in the same change as the string.
+
+`LanguageMiddleware` picks the language once per request and stores it in a context variable, which is why `_()` works in templates, routers and flash messages without a `lang` argument. Order of precedence (`i18n.resolve_language`): the `lang` cookie set by `/lang/{code}` → a country header from the proxy (`CF-IPCountry`, `Ar-Real-Country`, …) → whether the client IP is in an Iranian network → the first `Accept-Language` entry. The Iranian ranges live in `app/i18n/ir_networks.txt`, generated from RIPE's delegation list by `scripts/update_ir_networks.py` — rerun it every few months.
+
+Fixed server messages (flash, form errors) are translated where they're displayed (`{{ _(flash.message) }}`), so a static `set_flash(request, "Position saved.")` needs only a `fa.py` entry. Messages with values must call `_("Added {name}.", name=...)` in the router, since the interpolated text can't match a key.
+
+Farsi pages render `dir="rtl"` with the self-hosted Vazirmatn font and Jalali dates (the `dt`/`d` filters switch calendars via `jdatetime`). In templates use logical utilities (`ms-`/`me-`, `start-`/`end-`, `text-start`/`text-end`) rather than `ml-`/`left-`, put `dir="auto"` or `<bdi>` on user-entered text so English names and research topics keep their own direction, and mark emails/URLs/code `ltr`. Directional icons (arrows) flip automatically. The admin panel is deliberately English-only and LTR.
 
 ## Schema changes
 

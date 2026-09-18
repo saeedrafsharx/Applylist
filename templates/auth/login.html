@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Sign in · ApplyList{% endblock %}
+{% block title %}{{ _("Sign in") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-sm mx-auto pt-6">
   <div class="text-center mb-6">
-    <h1 class="page-title">Welcome back</h1>
-    <p class="page-subtitle">Sign in to your application tracker.</p>
+    <h1 class="page-title">{{ _("Welcome back") }}</h1>
+    <p class="page-subtitle">{{ _("Sign in to your application tracker.") }}</p>
   </div>
 
   <div class="card card-body">
-    {% if error %}<div class="alert alert-error mb-4">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
+    {% if error %}<div class="alert alert-error mb-4">{{ ui.icon('alert', 16) }}<span>{{ _(error) }}</span></div>{% endif %}
 
-    <form method="post" action="/login" class="grid grid-cols-1 gap-4">
+    <form method="post" action="/login" class="grid gap-4">
       <input type="hidden" name="next" value="{{ next|default('') }}" />
       <label class="field">
-        <span class="label">Username or email</span>
-        <input name="username" required autofocus autocomplete="username" class="input"
+        <span class="label">{{ _("Username or email") }}</span>
+        <input name="username" required autofocus autocomplete="username" class="input ltr"
                value="{{ values.username if values else '' }}" />
       </label>
       <label class="field">
         <span class="flex justify-between">
-          <span class="label">Password</span>
-          <a href="/forgot-password" class="text-xs link-muted">Forgot password?</a>
+          <span class="label">{{ _("Password") }}</span>
+          <a href="/forgot-password" class="text-xs link-muted">{{ _("Forgot password?") }}</a>
         </span>
-        <input type="password" name="password" required autocomplete="current-password" class="input" />
+        <input type="password" name="password" required autocomplete="current-password" class="input ltr" />
       </label>
-      <button class="btn btn-primary btn-block mt-1">Sign in</button>
+      <button class="btn btn-primary btn-block mt-1">{{ _("Sign in") }}</button>
     </form>
   </div>
 
   <p class="mt-5 text-center text-sm text-muted">
-    New here? <a href="/register" class="link font-medium">Create an account</a>
+    {{ _("New here?") }} <a href="/register" class="link font-medium">{{ _("Create an account") }}</a>
   </p>
 </div>
 {% endblock %}

@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import render, require_verified, set_flash, subscription_context
+from ..deps import render, require_verified, safe_back, set_flash, subscription_context
 from ..models import Position, User
 from ..schemas import PositionForm
 from ..services.audit import Action, log_activity
@@ -228,6 +228,7 @@ def delete_position(
 
 @router.post("/status/{position_id}")
 def set_status(
+    request: Request,
     position_id: int,
     status: str = Form(...),
     user: User = Depends(require_verified),
@@ -236,4 +237,4 @@ def set_status(
     position = _owned(db, user, position_id)
     if position is not None and status in Position.STATUSES:
         position.status = status
-    return RedirectResponse("/positions", status_code=303)
+    return RedirectResponse(safe_back(request, "/positions"), status_code=303)

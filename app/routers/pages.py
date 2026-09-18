@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -12,6 +12,9 @@ from ..deps import get_current_user, render, subscription_context
 from ..models import CatalogProfessor, Contact, Position, User
 
 router = APIRouter(tags=["pages"])
+
+# How long after a first email the dashboard suggests a follow-up.
+FOLLOW_UP_AFTER_DAYS = 14
 
 
 @router.get("/health")
@@ -57,8 +60,46 @@ def home(
             ).scalar_one()
         ),
     }
+    # Emailed at least this long ago, no reminder yet: time for a polite nudge.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=FOLLOW_UP_AFTER_DAYS)
+    follow_ups = list(
+        db.execute(
+            select(Contact)
+            .where(
+                Contact.owner_id == user.id,
+                Contact.email_sent.is_(True),
+                Contact.reminder_sent.is_(False),
+                Contact.email_sent_at.is_not(None),
+                Contact.email_sent_at <= cutoff,
+            )
+            .order_by(Contact.email_sent_at)
+            .limit(5)
+        ).scalars()
+    )
+    today = date.today()
+    deadlines = list(
+        db.execute(
+            select(Position)
+            .where(
+                Position.owner_id == user.id,
+                Position.deadline.is_not(None),
+                Position.deadline >= today,
+                Position.status.not_in(["rejected", "archived", "offer"]),
+            )
+            .order_by(Position.deadline)
+            .limit(5)
+        ).scalars()
+    )
     return render(
-        request, "home.html", {"counts": counts, **subscription_context(db, user)}
+        request,
+        "home.html",
+        {
+            "counts": counts,
+            "follow_ups": follow_ups,
+            "deadlines": deadlines,
+            "today": today,
+            **subscription_context(db, user),
+        },
     )
 
 

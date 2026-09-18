@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Not found · ApplyList{% endblock %}
+{% block title %}{{ _("Not found") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto text-center py-20">
-  <div class="mono text-sm text-muted">Error 404</div>
-  <h1 class="mt-2 text-2xl font-semibold tracking-tight">That page doesn't exist</h1>
-  <p class="mt-2 text-muted">The link may be stale, or the entry was deleted.</p>
-  <a href="/" class="btn btn-primary mt-6">Back home</a>
+  <div class="mono text-sm text-muted">{{ _("Error") }} 404</div>
+  <h1 class="mt-2 text-2xl font-semibold tracking-tight">{{ _("That page doesn't exist") }}</h1>
+  <p class="mt-2 text-muted">{{ _("The link may be stale, or the entry was deleted.") }}</p>
+  <a href="/" class="btn btn-primary mt-6">{{ _("Back home") }}</a>
 </div>
 {% endblock %}

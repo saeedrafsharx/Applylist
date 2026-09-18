@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from . import i18n
 from .config import settings
 from .db import get_db
 from .models import User
@@ -31,8 +32,23 @@ templates = Jinja2Templates(directory="templates")
 
 def _fmt_toman(rial: Optional[int]) -> str:
     if not rial:
-        return "Free"
-    return f"{rial // 10:,} Toman"
+        return i18n._("Free")
+    return i18n._("{amount} Toman", amount=f"{rial // 10:,}")
+
+
+def _jalali(value, fmt: str) -> str:
+    """The same format, rendered on the Solar Hijri calendar Iranian readers use."""
+    import jdatetime
+
+    converted = (
+        jdatetime.datetime.fromgregorian(datetime=value)
+        if isinstance(value, datetime)
+        else jdatetime.date.fromgregorian(date=value)
+    )
+    # Month and weekday names come out in Farsi; numbers stay Latin, matching
+    # the rest of the UI (emails, amounts, IDs are all Latin).
+    jdatetime.set_locale(jdatetime.FA_LOCALE)
+    return converted.strftime(fmt)
 
 
 def _fmt_dt(value: Optional[datetime], fmt: str = "%Y-%m-%d %H:%M") -> str:
@@ -40,13 +56,14 @@ def _fmt_dt(value: Optional[datetime], fmt: str = "%Y-%m-%d %H:%M") -> str:
         return "—"
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone().strftime(fmt)
+    value = value.astimezone()
+    return _jalali(value, fmt) if i18n.get_lang() == "fa" else value.strftime(fmt)
 
 
 def _fmt_date(value, fmt: str = "%Y-%m-%d") -> str:
     if value is None:
         return "—"
-    return value.strftime(fmt)
+    return _jalali(value, fmt) if i18n.get_lang() == "fa" else value.strftime(fmt)
 
 
 templates.env.filters["toman"] = _fmt_toman
@@ -54,6 +71,10 @@ templates.env.filters["dt"] = _fmt_dt
 templates.env.filters["d"] = _fmt_date
 templates.env.globals["settings"] = settings
 templates.env.globals["now"] = lambda: datetime.now(timezone.utc)
+templates.env.globals["_"] = i18n._
+templates.env.globals["get_lang"] = i18n.get_lang
+templates.env.globals["is_rtl"] = i18n.is_rtl
+templates.env.globals["LANGUAGES"] = i18n.LANGUAGES
 
 
 def render(request: Request, name: str, context: Optional[dict] = None, **kwargs):

@@ -1,47 +1,48 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Create your account · ApplyList{% endblock %}
+{% block title %}{{ _("Create your account") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto pt-6">
   <div class="text-center mb-6">
-    <h1 class="page-title">Create your account</h1>
-    <p class="page-subtitle">Free forever for tracking your own contacts and positions.</p>
+    <h1 class="page-title">{{ _("Create your account") }}</h1>
+    <p class="page-subtitle">{{ _("Free forever for tracking your own contacts and positions.") }}</p>
   </div>
 
   <div class="card card-body">
-    {% if error %}<div class="alert alert-error mb-4">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
+    {% if error %}<div class="alert alert-error mb-4">{{ ui.icon('alert', 16) }}<span>{{ _(error) }}</span></div>{% endif %}
 
-    <form method="post" action="/register" class="grid grid-cols-1 gap-4">
+    <form method="post" action="/register" class="grid gap-4">
       <label class="field">
-        <span class="label">Username</span>
-        <input name="username" required autofocus autocomplete="username" class="input" value="{{ values.username if values else '' }}" />
+        <span class="label">{{ _("Username") }}</span>
+        <input name="username" required autofocus autocomplete="username" class="input ltr" value="{{ values.username if values else '' }}" />
+        <span class="hint">{{ _("Letters, numbers, dots, dashes and underscores.") }}</span>
       </label>
       <label class="field">
-        <span class="label">Email</span>
+        <span class="label">{{ _("Email") }}</span>
         <input type="email" name="email" required autocomplete="email" class="input" value="{{ values.email if values else '' }}" />
-        <span class="hint">We'll send a confirmation link here.</span>
+        <span class="hint">{{ _("We'll send a confirmation link here.") }}</span>
       </label>
       <label class="field">
-        <span class="label">Full name <span class="label-optional">(optional)</span></span>
+        <span class="label">{{ _("Full name") }} <span class="label-optional">({{ _("optional") }})</span></span>
         <input name="full_name" autocomplete="name" class="input" value="{{ values.full_name if values else '' }}" />
       </label>
       <div class="grid sm:grid-cols-2 gap-4">
         <label class="field">
-          <span class="label">Password</span>
-          <input type="password" name="password" required minlength="8" autocomplete="new-password" class="input" />
+          <span class="label">{{ _("Password") }}</span>
+          <input type="password" name="password" required minlength="8" autocomplete="new-password" class="input ltr" />
         </label>
         <label class="field">
-          <span class="label">Confirm password</span>
-          <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password" class="input" />
+          <span class="label">{{ _("Confirm password") }}</span>
+          <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password" class="input ltr" />
         </label>
       </div>
-      <span class="hint -mt-2">At least 8 characters.</span>
-      <button class="btn btn-primary btn-block mt-1">Create account</button>
+      <span class="hint -mt-2">{{ _("At least 8 characters.") }}</span>
+      <button class="btn btn-primary btn-block mt-1">{{ _("Create account") }}</button>
     </form>
   </div>
 
   <p class="mt-5 text-center text-sm text-muted">
-    Already registered? <a href="/login" class="link font-medium">Sign in</a>
+    {{ _("Already registered?") }} <a href="/login" class="link font-medium">{{ _("Sign in") }}</a>
   </p>
 </div>
 {% endblock %}

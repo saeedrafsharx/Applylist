@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Pricing · ApplyList{% endblock %}
+{% block title %}{{ _("Pricing") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-5xl mx-auto">
   <div class="text-center mb-10 pt-4">
-    <h1 class="text-3xl font-semibold tracking-tight">Simple pricing</h1>
-    <p class="mt-2 text-muted">Tracking your own applications is free forever. Pro adds the database and the assistant.</p>
+    <h1 class="text-3xl font-semibold tracking-tight">{{ _("Simple pricing") }}</h1>
+    <p class="mt-2 text-muted">{{ _("Tracking your own applications is free forever. Pro adds the database and the assistant.") }}</p>
   </div>
 
   {% if reason %}
-    <div class="alert alert-info mb-6">{{ ui.icon('info', 16) }}<span>{{ reason }}</span></div>
+    <div class="alert alert-info mb-6">{{ ui.icon('info', 16) }}<span>{{ _(reason) }}</span></div>
   {% endif %}
 
   {% if not payments_enabled %}
     <div class="alert alert-warning mb-6">
       {{ ui.icon('alert', 16) }}
-      <span>Online payment isn't switched on yet. Contact support and we'll activate a plan on your account manually.</span>
+      <span>{{ _("Online payment isn't switched on yet. Contact support and we'll activate a plan on your account manually.") }}</span>
     </div>
   {% endif %}
 
@@ -25,26 +25,26 @@
     {% set featured = plan.code == 'pro_yearly' %}
     <div class="card card-body flex flex-col relative" {% if featured %}style="border-color: rgb(var(--fg)); box-shadow: var(--shadow-lg)"{% endif %}>
       {% if featured %}
-        <span class="badge absolute -top-3 left-5" style="background: rgb(var(--fg)); color: rgb(var(--canvas)); border-color: transparent">Best value</span>
+        <span class="badge absolute -top-3 left-5" style="background: rgb(var(--fg)); color: rgb(var(--canvas)); border-color: transparent">{{ _("Best value") }}</span>
       {% endif %}
 
-      <div class="font-semibold">{{ plan.name }}</div>
+      <div class="font-semibold">{{ _(plan.name) }}</div>
       <div class="mt-3 flex items-baseline gap-1.5">
         {% if plan.is_free %}
-          <span class="text-3xl font-semibold tracking-tight">Free</span>
+          <span class="text-3xl font-semibold tracking-tight">{{ _("Free") }}</span>
         {% else %}
           <span class="text-3xl font-semibold tracking-tight tabular-nums">{{ "{:,}".format(plan.price_toman) }}</span>
-          <span class="text-muted text-sm">Toman{% if plan.duration_days %} / {{ plan.duration_days }} days{% endif %}</span>
+          <span class="text-muted text-sm">{{ _("Toman") }}{% if plan.duration_days %} / {{ _("{n} days", n=plan.duration_days) }}{% endif %}</span>
         {% endif %}
       </div>
-      {% if plan.description %}<p class="mt-2 text-muted">{{ plan.description }}</p>{% endif %}
+      {% if plan.description %}<p class="mt-2 text-muted">{{ _(plan.description) }}</p>{% endif %}
 
       <ul class="mt-5 grid gap-2.5 flex-1">
         {% for ok, text in [
-          (True, 'Unlimited contacts and positions'),
-          (True, 'CSV import and export'),
-          (plan.grants_catalog, 'Full supervisor database'),
-          (plan.grants_ai, 'AI assistant' ~ (' · ' ~ plan.ai_monthly_quota ~ ' messages/month' if plan.ai_monthly_quota else ''))
+          (True, _('Unlimited professors and positions')),
+          (True, _('CSV import and export')),
+          (plan.grants_catalog, _('Full supervisor database')),
+          (plan.grants_ai, _('AI assistant') ~ (' · ' ~ _('{n} messages/month', n=plan.ai_monthly_quota) if plan.ai_monthly_quota else ''))
         ] %}
           <li class="flex gap-2.5 items-start {% if not ok %}text-faint line-through{% endif %}">
             <span class="mt-0.5 {{ 'text-success' if ok else '' }}">{{ ui.icon('check' if ok else 'x', 15) }}</span><span>{{ text }}</span>
@@ -55,18 +55,18 @@
       <div class="mt-6">
         {% if current %}
           <div class="btn btn-secondary btn-block" aria-disabled="true">
-            Current plan{% if subscription.expires_at %} · {{ subscription.days_remaining }} days left{% endif %}
+            {{ _("Current plan") }}{% if subscription.expires_at %} · {{ _("{n} days left", n=subscription.days_remaining) }}{% endif %}
           </div>
         {% elif plan.is_free %}
-          <div class="btn btn-ghost btn-block" aria-disabled="true">Included</div>
+          <div class="btn btn-ghost btn-block" aria-disabled="true">{{ _("Included") }}</div>
         {% elif not user %}
-          <a href="/register" class="btn {{ 'btn-primary' if featured else 'btn-secondary' }} btn-block">Create an account</a>
+          <a href="/register" class="btn {{ 'btn-primary' if featured else 'btn-secondary' }} btn-block">{{ _("Create an account") }}</a>
         {% elif not payments_enabled %}
-          <button disabled class="btn btn-secondary btn-block">Unavailable</button>
+          <button disabled class="btn btn-secondary btn-block">{{ _("Unavailable") }}</button>
         {% else %}
           <form method="post" action="/billing/subscribe/{{ plan.code }}">
             <button class="btn {{ 'btn-primary' if featured else 'btn-secondary' }} btn-block">
-              {% if subscription %}Switch to {{ plan.name }}{% else %}Subscribe{% endif %}
+              {% if subscription %}{{ _("Switch to {plan}", plan=_(plan.name)) }}{% else %}{{ _("Subscribe") }}{% endif %}
             </button>
           </form>
         {% endif %}
@@ -76,8 +76,8 @@
   </div>
 
   <p class="mt-8 text-center text-xs text-muted">
-    Payments are processed by Zarinpal{% if settings.zarinpal_sandbox %} <strong>(sandbox mode — no real money moves)</strong>{% endif %}.
-    Subscriptions don't auto-renew; you re-subscribe when the period ends.
+    {{ _("Payments are processed by Zarinpal.") }}{% if settings.zarinpal_sandbox %} <strong>{{ _("(Sandbox mode — no real money moves.)") }}</strong>{% endif %}
+    {{ _("Subscriptions don't auto-renew; you re-subscribe when the period ends.") }}
   </p>
 </div>
 {% endblock %}

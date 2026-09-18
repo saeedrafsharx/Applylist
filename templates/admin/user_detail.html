@@ -161,7 +161,7 @@
         subscriptions and payment records. This cannot be undone.
       </p>
       <form method="post" action="/admin/users/{{ u.id }}/delete" class="toolbar"
-            onsubmit="return confirm('Permanently delete {{ u.username }} and all their data?')">
+            data-confirm="Permanently delete {{ u.username }} and all their data?">
         <label class="field">
           <span class="label">Type <strong>{{ u.username }}</strong> to confirm</span>
           <input name="confirm" required placeholder="{{ u.username }}" class="input w-64" />

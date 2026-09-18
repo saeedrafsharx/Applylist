@@ -1,37 +1,120 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Your dashboard · ApplyList{% endblock %}
+{% block title %}{{ _("Your dashboard") }} · ApplyList{% endblock %}
 {% block content %}
+{% set first_name = user.full_name.split(' ')[0] if user and user.full_name else '' %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Welcome back{% if user and user.full_name %}, {{ user.full_name.split(' ')[0] }}{% endif %}</h1>
+    <h1 class="page-title">{% if first_name %}{{ _("Welcome back, {name}", name=first_name) }}{% else %}{{ _("Welcome back") }}{% endif %}</h1>
     <p class="page-subtitle">
       {% if counts.contacts %}
-        {{ counts.contacts }} contact{{ '' if counts.contacts == 1 else 's' }} tracked ·
-        {{ counts.emailed }} emailed · {{ counts.positions }} position{{ '' if counts.positions == 1 else 's' }}
+        {{ _("{contacts} professors tracked · {emailed} emailed · {positions} positions", contacts=counts.contacts, emailed=counts.emailed, positions=counts.positions) }}
       {% else %}
-        Start by adding the first professor you want to reach.
+        {{ _("Start by adding the first professor you want to reach.") }}
       {% endif %}
     </p>
   </div>
-  <a href="/professors" class="btn btn-primary">{{ ui.icon('plus', 16) }}Add a contact</a>
+  <a href="/professors?add=1" class="btn btn-primary">{{ ui.icon('plus', 16) }}{{ _("Add a professor") }}</a>
 </div>
+
+{% set steps = [
+  (user.is_email_verified, _('Confirm your email address'), '/verify-email'),
+  (counts.contacts > 0, _('Add the first professor you want to contact'), '/professors?add=1'),
+  (counts.emailed > 0, _('Send your first email and mark it as sent'), '/professors'),
+  (counts.positions > 0, _('Save a position you plan to apply for'), '/positions?add=1'),
+] %}
+{% set done = steps | selectattr(0) | list | length %}
+{% if done < steps | length %}
+<section class="card mb-6">
+  <div class="card-header">
+    <h2 class="card-title">{{ _("Getting started") }}</h2>
+    <span class="text-xs text-muted">{{ _("{done} of {total} done", done=done, total=steps|length) }}</span>
+  </div>
+  <div class="card-body pt-3">
+    <div class="progress mb-3"><span style="width: {{ (100 * done / steps|length) | round | int }}%"></span></div>
+    <div class="checklist">
+      {% for ok, label, href in steps %}
+        {% if ok %}
+          <div class="done"><span class="check-dot">{{ ui.icon('check', 12) }}</span><span class="check-label">{{ label }}</span></div>
+        {% else %}
+          <a href="{{ href }}"><span class="check-dot"></span><span>{{ label }}</span><span class="ms-auto text-muted">{{ ui.icon('arrow-right', 14) }}</span></a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if follow_ups or deadlines %}
+<div class="grid md:grid-cols-2 gap-4 mb-6">
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title flex items-center gap-2">{{ ui.icon('bell', 15) }}{{ _("Follow-ups due") }}</h2>
+      <a href="/professors" class="text-sm link">{{ _("All professors") }}</a>
+    </div>
+    {% if follow_ups %}
+      <div class="divide">
+        {% for c in follow_ups %}
+        <div class="px-5 py-3 flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="font-medium truncate" dir="auto">{{ c.name }}</div>
+            <div class="text-xs text-muted">{{ _("Emailed {days} days ago", days=(now() - c.email_sent_at).days) }} · {{ c.university }}</div>
+          </div>
+          {% if can_ai %}
+            <a href="/assistant/draft?contact_id={{ c.id }}" class="btn btn-secondary btn-sm">{{ ui.icon('sparkles', 13) }}{{ _("Draft follow-up") }}</a>
+          {% endif %}
+          <form action="/toggle-reminder/{{ c.id }}" method="post">
+            <button class="btn btn-ghost btn-sm" title="{{ _('Mark the follow-up as sent') }}">{{ ui.icon('check', 14) }}{{ _("Sent") }}</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="card-body text-muted">{{ _("Nobody is waiting on a follow-up. Emails older than two weeks without a reply show up here.") }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title flex items-center gap-2">{{ ui.icon('calendar', 15) }}{{ _("Upcoming deadlines") }}</h2>
+      <a href="/positions?sort=deadline" class="text-sm link">{{ _("All positions") }}</a>
+    </div>
+    {% if deadlines %}
+      <div class="divide">
+        {% for p in deadlines %}
+        {% set left = (p.deadline - today).days %}
+        <a href="{{ p.link }}" target="_blank" rel="noopener" class="px-5 py-3 flex items-center gap-3 hover:bg-subtle/50">
+          <div class="min-w-0 flex-1">
+            <div class="font-medium truncate" dir="auto">{{ p.field }}</div>
+            <div class="text-xs text-muted">{{ p.deadline | d }} · {{ _(p.status | capitalize) }}</div>
+          </div>
+          <span class="badge {{ 'badge-danger' if left <= 3 else ('badge-warning' if left <= 14 else '') }}">
+            {% if left == 0 %}{{ _("Today") }}{% else %}{{ _("{n} days left", n=left) }}{% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="card-body text-muted">{{ _("No upcoming deadlines. Add a deadline to a position to see it here.") }}</p>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
 
 <div class="grid sm:grid-cols-2 gap-4">
   {% for href, icon, title, body, value, locked in [
-      ('/professors', 'users', 'Professors', "Who you've contacted, and who still owes you a reply.", counts.contacts, False),
-      ('/positions', 'briefcase', 'Positions', 'Fellowships, PhD calls, RA posts and their deadlines.', counts.positions, False),
-      ('/database', 'database', 'Database', 'Search supervisors and role titles across universities.', None, not can_catalog),
-      ('/assistant', 'sparkles', 'Assistant', 'Draft outreach emails and ask application questions.', None, not can_ai)] %}
+      ('/professors', 'users', _('Professors'), _("Who you've contacted, and who still owes you a reply."), counts.contacts, False),
+      ('/positions', 'briefcase', _('Positions'), _('Fellowships, PhD calls, RA posts and their deadlines.'), counts.positions, False),
+      ('/database', 'database', _('Database'), _('Search supervisors and role titles across universities.'), None, not can_catalog),
+      ('/assistant', 'sparkles', _('Assistant'), _('Draft outreach emails and ask application questions.'), None, not can_ai)] %}
   <a href="{{ href }}" class="card card-body group flex flex-col">
     <div class="flex items-center gap-3">
       <div class="feature-icon">{{ ui.icon(icon, 17) }}</div>
       <span class="font-semibold">{{ title }}</span>
-      {% if locked %}<span class="badge ml-auto">{{ ui.icon('lock', 11) }}Pro</span>
-      {% elif value is not none %}<span class="ml-auto text-2xl font-semibold tabular-nums">{{ value }}</span>{% endif %}
+      {% if locked %}<span class="badge ms-auto">{{ ui.icon('lock', 11) }}{{ _("Pro") }}</span>
+      {% elif value is not none %}<span class="ms-auto text-2xl font-semibold tabular-nums">{{ value }}</span>{% endif %}
     </div>
     <p class="mt-3 text-muted">{{ body }}</p>
-    <span class="mt-4 text-sm font-medium text-accent inline-flex items-center gap-1">Open {{ ui.icon('arrow-right', 14, 'transition-transform group-hover:translate-x-0.5') }}</span>
   </a>
   {% endfor %}
 </div>
@@ -39,10 +122,10 @@
 {% if not is_paid %}
 <div class="card card-body mt-6 flex flex-wrap items-center justify-between gap-4">
   <div>
-    <div class="font-semibold">Unlock the database and the AI assistant</div>
-    <p class="text-muted">Everything you track stays free. Pro adds the shared catalog and email drafting.</p>
+    <div class="font-semibold">{{ _("Unlock the database and the AI assistant") }}</div>
+    <p class="text-muted">{{ _("Everything you track stays free. Pro adds the shared catalog and email drafting.") }}</p>
   </div>
-  <a href="/pricing" class="btn btn-secondary shrink-0">See plans</a>
+  <a href="/pricing" class="btn btn-secondary shrink-0">{{ _("See plans") }}</a>
 </div>
 {% endif %}
 {% endblock %}

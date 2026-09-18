@@ -35,7 +35,7 @@
     <div class="card-header">
       <h2 class="card-title">Sources</h2>
       <form method="post" action="/admin/scraper/run-all"
-            onsubmit="return confirm('Crawl every enabled source now? They run one after another in the background.')">
+            data-confirm="Crawl every enabled source now? They run one after another in the background.">
         <button class="btn btn-secondary btn-sm">{{ ui.icon('play', 13) }}Run all enabled</button>
       </form>
     </div>
@@ -77,7 +77,7 @@
           <form method="post" action="/admin/scraper/sources/{{ s.id }}/toggle">
             <button class="btn btn-secondary btn-sm">{{ 'Disable' if s.enabled else 'Enable' }}</button>
           </form>
-          <form method="post" action="/admin/scraper/sources/{{ s.id }}/delete" onsubmit="return confirm('Delete this source? Records already collected are kept.')">
+          <form method="post" action="/admin/scraper/sources/{{ s.id }}/delete" data-confirm="Delete this source? Records already collected are kept.">
             <button class="icon-btn hover:text-danger" title="Delete source" aria-label="Delete source">{{ ui.icon('trash', 15) }}</button>
           </form>
         </div>

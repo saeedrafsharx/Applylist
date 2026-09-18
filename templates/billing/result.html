@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}{{ 'Payment confirmed' if ok else 'Payment failed' }} · ApplyList{% endblock %}
+{% block title %}{{ _('Payment confirmed') if ok else _('Payment not completed') }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto pt-6">
   <div class="card card-body text-center">
     <div class="empty-icon {{ 'text-success' if ok else 'text-danger' }}">{{ ui.icon('check-circle' if ok else 'alert', 18) }}</div>
-    <h1 class="text-lg font-semibold">{{ 'Payment confirmed' if ok else 'Payment not completed' }}</h1>
-    <p class="mt-2 text-muted">{{ message }}</p>
+    <h1 class="text-lg font-semibold">{{ _('Payment confirmed') if ok else _('Payment not completed') }}</h1>
+    <p class="mt-2 text-muted">{{ _(message) }}</p>
 
     {% if payment %}
     <dl class="dl mt-6 text-left rounded-lg bg-subtle p-4">
-      <div><dt>Plan</dt><dd>{{ payment.plan.name if payment.plan else '—' }}</dd></div>
-      <div><dt>Amount</dt><dd>{{ "{:,}".format(payment.amount_toman) }} Toman</dd></div>
-      {% if payment.ref_id %}<div><dt>Reference</dt><dd class="mono text-xs">{{ payment.ref_id }}</dd></div>{% endif %}
-      {% if payment.card_pan %}<div><dt>Card</dt><dd class="mono text-xs">{{ payment.card_pan }}</dd></div>{% endif %}
+      <div><dt>{{ _('Plan') }}</dt><dd>{{ _(payment.plan.name) if payment.plan else '—' }}</dd></div>
+      <div><dt>{{ _("Amount") }}</dt><dd>{{ _("{amount} Toman", amount="{:,}".format(payment.amount_toman)) }}</dd></div>
+      {% if payment.ref_id %}<div><dt>{{ _("Reference") }}</dt><dd class="mono text-xs">{{ payment.ref_id }}</dd></div>{% endif %}
+      {% if payment.card_pan %}<div><dt>{{ _("Card") }}</dt><dd class="mono text-xs">{{ payment.card_pan }}</dd></div>{% endif %}
       {% if subscription and subscription.expires_at %}
-        <div><dt>Valid until</dt><dd>{{ subscription.expires_at | dt('%Y-%m-%d') }}</dd></div>
+        <div><dt>{{ _("Valid until") }}</dt><dd>{{ subscription.expires_at | dt('%Y-%m-%d') }}</dd></div>
       {% endif %}
     </dl>
     {% endif %}
 
     <div class="mt-6 flex flex-wrap gap-2 justify-center">
       {% if ok %}
-        <a href="/database" class="btn btn-primary">Open the database</a>
-        <a href="/assistant" class="btn btn-secondary">Try the assistant</a>
+        <a href="/database" class="btn btn-primary">{{ _("Open the database") }}</a>
+        <a href="/assistant" class="btn btn-secondary">{{ _("Try the assistant") }}</a>
       {% else %}
-        <a href="/pricing" class="btn btn-primary">Try again</a>
-        <a href="/billing" class="btn btn-secondary">Payment history</a>
+        <a href="/pricing" class="btn btn-primary">{{ _("Try again") }}</a>
+        <a href="/billing" class="btn btn-secondary">{{ _("Payment history") }}</a>
       {% endif %}
     </div>
   </div>

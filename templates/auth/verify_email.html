@@ -1,40 +1,38 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Confirm your email · ApplyList{% endblock %}
+{% block title %}{{ _("Confirm your email") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto pt-6">
   <div class="card card-body text-center">
     <div class="empty-icon">{{ ui.icon('mail', 18) }}</div>
-    <h1 class="text-lg font-semibold">Confirm your email</h1>
+    <h1 class="text-lg font-semibold">{{ _("Confirm your email") }}</h1>
 
     {% if error %}
-      <div class="alert alert-error mt-4 text-left">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>
+      <div class="alert alert-error mt-4 text-start">{{ ui.icon('alert', 16) }}<span>{{ _(error) }}</span></div>
     {% else %}
       <p class="mt-2 text-muted">
-        We sent a link to <strong class="text-fg">{{ user.email if user else 'your address' }}</strong>.
-        Click it to unlock your dashboards.
+        {% if user %}{{ _("We sent a link to {email}. Click it to unlock your dashboard.", email=user.email) }}
+        {% else %}{{ _("We sent you a confirmation link. Click it to unlock your dashboard.") }}{% endif %}
       </p>
     {% endif %}
 
     {% if not email_enabled %}
-      <div class="alert alert-warning mt-5 text-left">
+      <div class="alert alert-warning mt-5 text-start">
         {{ ui.icon('alert', 16) }}
-        <span><strong>Mail isn't configured on this server.</strong>
-        The confirmation link was written to the application log instead of being sent.
-        Set <code>SMTP_HOST</code> to deliver real email.</span>
+        <span><strong>{{ _("Mail isn't configured on this server.") }}</strong>
+        {{ _("The confirmation link was written to the application log instead of being sent.") }}</span>
       </div>
     {% endif %}
 
     {% if user %}
       <form method="post" action="/verify-email/resend" class="mt-6">
-        <button class="btn btn-primary">Send it again</button>
+        <button class="btn btn-primary">{{ _("Send it again") }}</button>
       </form>
       <p class="mt-4 text-xs text-muted">
-        Check your spam folder before requesting another. Links expire after
-        {{ settings.email_verification_ttl_hours }} hours.
+        {{ _("Check your spam folder before requesting another. Links expire after {hours} hours.", hours=settings.email_verification_ttl_hours) }}
       </p>
     {% else %}
-      <a href="/login" class="btn btn-primary mt-6">Sign in</a>
+      <a href="/login" class="btn btn-primary mt-6">{{ _("Sign in") }}</a>
     {% endif %}
   </div>
 </div>

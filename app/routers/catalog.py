@@ -10,6 +10,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
+from ..i18n import _
 from ..deps import (
     get_current_user,
     render,
@@ -48,7 +49,7 @@ def mask_email(email: Optional[str]) -> str:
     """`d.bzdok@mcgill.ca` -> `d••••@mcgill.ca` for the unpaid preview."""
     if not email or "@" not in email:
         return "—"
-    local, _, domain = email.partition("@")
+    local, _sep, domain = email.partition("@")
     return f"{local[:1]}{'•' * max(3, len(local) - 1)}@{domain}"
 
 
@@ -306,7 +307,7 @@ def save_to_contacts(
         )
     ).scalar_one_or_none()
     if already is not None:
-        set_flash(request, f"{professor.name} is already in your list.", "info")
+        set_flash(request, _("{name} is already in your list.", name=professor.name), "info")
         return RedirectResponse(safe_back(request, "/database/professors"), 303)
 
     contact = Contact(
@@ -327,7 +328,7 @@ def save_to_contacts(
         target_type="catalog_professor", target_id=professor.id,
         summary=f"Saved {professor.name} to contacts",
     )
-    set_flash(request, f"Added {professor.name} to your professors list.", "success")
+    set_flash(request, _("Added {name} to your professors list.", name=professor.name), "success")
     return RedirectResponse(safe_back(request, "/database/professors"), 303)
 
 

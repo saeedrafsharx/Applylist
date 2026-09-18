@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
+from ..i18n import _
 from ..deps import get_current_user, render, require_verified, set_flash, subscription_context
 from ..models import Payment, Plan, Subscription, User
 from ..services import email as email_service
@@ -170,7 +171,7 @@ def billing_callback(
             subscription.expires_at.strftime("%Y-%m-%d") if subscription.expires_at else None,
         )
 
-    set_flash(request, f"{payment.plan.name} is now active. Thank you!", "success")
+    set_flash(request, _("{plan} is now active. Thank you!", plan=payment.plan.name), "success")
     return render(
         request,
         "billing/result.html",

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Edit {{ c.name }} · ApplyList{% endblock %}
+{% block title %}{{ _("Edit") }} {{ c.name }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto">
-  <a href="/professors" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Professors</a>
+  <a href="/professors" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}{{ _("Professors") }}</a>
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ c.name }}</h1>
@@ -14,31 +14,34 @@
   <section class="card">
     <form action="/edit/{{ c.id }}" method="post">
       <div class="card-body grid md:grid-cols-2 gap-4">
-        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
-        <label class="field"><span class="label">Name</span>
+        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ _(error) }}</span></div>{% endif %}
+        <label class="field"><span class="label">{{ _("Name") }}</span>
           <input name="name" value="{{ c.name }}" required class="input" /></label>
-        <label class="field"><span class="label">University</span>
+        <label class="field"><span class="label">{{ _("University") }}</span>
           <input name="university" value="{{ c.university }}" required class="input" /></label>
-        <label class="field md:col-span-2"><span class="label">Research focus</span>
+        <label class="field md:col-span-2"><span class="label">{{ _("Research focus") }}</span>
           <input name="research_focus" value="{{ c.research_focus }}" required class="input" /></label>
-        <label class="field"><span class="label">Email</span>
+        <label class="field"><span class="label">{{ _("Email") }}</span>
           <input type="email" name="contact_email" value="{{ c.contact_email }}" required class="input" /></label>
-        <label class="field"><span class="label">Category</span>
+        <label class="field"><span class="label">{{ _("Category") }}</span>
           <input name="category" value="{{ c.category or 'General' }}" class="input" /></label>
-        <label class="field md:col-span-2"><span class="label">Source URL</span>
-          <input name="source_url" value="{{ c.source_url }}" class="input" /></label>
-        <label class="field md:col-span-2"><span class="label">Notes</span>
-          <textarea name="notes" rows="4" class="input" placeholder="What you want to mention when you write to them…">{{ c.notes or '' }}</textarea></label>
+        <label class="field md:col-span-2"><span class="label">{{ _("Source URL") }}</span>
+          <input name="source_url" value="{{ c.source_url }}" class="input ltr" /></label>
+        <label class="field md:col-span-2"><span class="label">{{ _("Notes") }}</span>
+          <textarea name="notes" rows="4" class="input" placeholder="{{ _('What you want to mention when you write to them…') }}">{{ c.notes or '' }}</textarea></label>
 
         <div class="md:col-span-2 flex flex-wrap items-center gap-6">
-          <label class="check"><input type="checkbox" name="email_sent" class="checkbox" {% if c.email_sent %}checked{% endif %} /><span>Email sent</span></label>
-          <label class="check"><input type="checkbox" name="reminder_sent" class="checkbox" {% if c.reminder_sent %}checked{% endif %} /><span>Reminder sent</span></label>
-          {% if c.email_sent_at %}<span class="text-xs text-muted">Last sent {{ c.email_sent_at | dt }}</span>{% endif %}
+          <label class="check"><input type="checkbox" name="email_sent" class="checkbox" {% if c.email_sent %}checked{% endif %} /><span>{{ _("Email sent") }}</span></label>
+          <label class="check"><input type="checkbox" name="reminder_sent" class="checkbox" {% if c.reminder_sent %}checked{% endif %} /><span>{{ _("Follow-up sent") }}</span></label>
+          {% if c.email_sent_at %}<span class="text-xs text-muted">{{ _("Emailed on {date}", date=c.email_sent_at | dt) }}</span>{% endif %}
         </div>
       </div>
-      <div class="card-footer flex items-center gap-2">
-        <button class="btn btn-primary">Save changes</button>
-        <a href="/professors" class="btn btn-ghost">Cancel</a>
+      <div class="card-footer flex flex-wrap items-center gap-2">
+        <button class="btn btn-primary">{{ _("Save changes") }}</button>
+        <a href="/professors" class="btn btn-ghost">{{ _("Cancel") }}</a>
+        {% if can_ai is defined and can_ai %}
+          <a href="/assistant/draft?contact_id={{ c.id }}" class="btn btn-secondary ms-auto">{{ ui.icon('sparkles', 14) }}{{ _("Draft an email") }}</a>
+        {% endif %}
       </div>
     </form>
   </section>

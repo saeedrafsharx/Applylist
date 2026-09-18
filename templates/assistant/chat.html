@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}{{ conversation.title }} · Assistant{% endblock %}
+{% block title %}{{ conversation.title }} · {{ _("Assistant") }}{% endblock %}
 {% block content %}
 <div class="grid lg:grid-cols-[15rem_1fr] gap-6">
 
   <aside class="lg:sticky lg:top-20 lg:self-start grid gap-3">
-    <a href="/assistant/new" class="btn btn-primary">{{ ui.icon('plus', 15) }}New conversation</a>
-    <a href="/assistant/draft" class="btn btn-secondary">{{ ui.icon('mail', 15) }}Draft an email</a>
+    <a href="/assistant/new" class="btn btn-primary">{{ ui.icon('plus', 15) }}{{ _("New conversation") }}</a>
+    <a href="/assistant/draft" class="btn btn-secondary">{{ ui.icon('mail', 15) }}{{ _("Draft an email") }}</a>
 
     <div class="card overflow-hidden">
-      <div class="px-4 pt-3 pb-2 section-title mb-0">Recent</div>
+      <div class="px-4 pt-3 pb-2 section-title mb-0">{{ _("Recent") }}</div>
       <div class="max-h-96 overflow-y-auto pb-1">
         {% for c in conversations %}
           <a href="/assistant/c/{{ c.id }}"
              class="block mx-1 px-3 py-2 rounded-md text-sm {% if c.id == conversation.id %}bg-subtle font-medium{% else %}text-muted hover:bg-subtle hover:text-fg{% endif %}">
-            <span class="block truncate">{{ c.title }}</span>
+            <span class="block truncate" dir="auto">{{ c.title }}</span>
             <span class="block text-xs text-faint">{{ c.updated_at | dt('%b %d') }}</span>
           </a>
         {% endfor %}
@@ -22,37 +22,37 @@
     </div>
 
     <div class="card card-body">
-      <div class="stat-label">This month</div>
-      <div class="mt-1 text-sm"><span class="font-semibold">{{ used }}</span> <span class="text-muted">of {{ quota }} messages</span></div>
+      <div class="stat-label">{{ _("This month") }}</div>
+      <div class="mt-1 text-sm">{{ _("{used} of {quota} messages", used=used, quota=quota) }}</div>
       <div class="progress mt-2"><span style="width: {{ [(100 * used / quota) if quota else 0, 100] | min }}%"></span></div>
     </div>
   </aside>
 
   <section class="grid grid-cols-1 gap-4 min-w-0 content-start">
     <div class="flex items-center justify-between gap-3">
-      <h1 class="text-lg font-semibold truncate">{{ conversation.title }}</h1>
+      <h1 class="text-lg font-semibold truncate" dir="auto">{{ conversation.title }}</h1>
       <form action="/assistant/c/{{ conversation.id }}/archive" method="post">
-        <button class="btn btn-ghost btn-sm">Archive</button>
+        <button class="btn btn-ghost btn-sm">{{ _("Archive") }}</button>
       </form>
     </div>
 
     {% if not ai_configured %}
       <div class="alert alert-warning">
         {{ ui.icon('alert', 16) }}
-        <span><strong>The assistant isn't configured on this server.</strong> Set <code>OPENAI_API_KEY</code> to enable it.</span>
+        <span><strong>{{ _("The assistant isn't configured on this server.") }}</strong></span>
       </div>
     {% endif %}
 
     <div class="grid grid-cols-1 gap-4">
       {% if not messages %}
         <div class="card">
-          {% call ui.empty('message', 'Ask anything about your applications') %}
+          {% call ui.empty('message', _('Ask anything about your applications'), _('In English or Persian — the assistant answers in the language you write in.')) %}
             <div class="mt-5 grid sm:grid-cols-2 gap-2 max-w-xl mx-auto text-left">
               {% for prompt in [
-                'Write a first email to a professor working on computational neuroimaging.',
-                'My email got no reply after three weeks. Write a follow-up.',
-                'What should a PhD statement of purpose actually contain?',
-                'Review this draft and tell me what is weak: …'
+                _('Write a first email to a professor working on computational neuroimaging.'),
+                _('My email got no reply after three weeks. Write a follow-up.'),
+                _('What should a PhD statement of purpose actually contain?'),
+                _('Review this draft and tell me what is weak: …')
               ] %}
                 <button type="button" class="card px-3 py-2.5 text-left text-sm hover:bg-subtle"
                         onclick="const m = document.getElementById('msg'); m.value = this.textContent.trim(); m.focus();">{{ prompt }}</button>
@@ -65,12 +65,12 @@
       {% for m in messages %}
         <div {% if loop.last %}id="latest"{% endif %} class="flex {{ 'justify-end' if m.role == 'user' else 'justify-start' }}">
           <div class="bubble {{ 'bubble-user' if m.role == 'user' else 'bubble-assistant' }}">
-            <div class="msg-text">{{ m.content }}</div>
+            <div class="msg-text" dir="auto">{{ m.content }}</div>
             {% if m.role != 'user' %}
               <div class="bubble-meta">
                 <span>{{ m.created_at | dt('%H:%M') }}</span>
-                {% if m.output_tokens %}<span>{{ m.output_tokens }} tokens</span>{% endif %}
-                <button type="button" class="copy-btn hover:text-fg">Copy</button>
+                {% if m.output_tokens %}<span>{{ _("{n} tokens", n=m.output_tokens) }}</span>{% endif %}
+                <button type="button" class="copy-btn hover:text-fg" data-copied="{{ _('Copied') }}">{{ _("Copy") }}</button>
               </div>
             {% endif %}
           </div>
@@ -80,11 +80,11 @@
 
     <form method="post" action="/assistant/c/{{ conversation.id }}/send" class="card sticky bottom-4 p-2 shadow-lg">
       <textarea id="msg" name="message" rows="3" required
-                placeholder="Ask a question, or paste a draft for review…"
+                placeholder="{{ _('Ask a question, or paste a draft for review…') }}" dir="auto"
                 class="w-full px-3 py-2 bg-transparent resize-y focus:outline-none"></textarea>
       <div class="flex items-center justify-between gap-3 px-2 pb-1">
-        <span class="text-xs text-faint"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to send</span>
-        <button class="btn btn-primary btn-sm">Send {{ ui.icon('arrow-right', 14) }}</button>
+        <span class="text-xs text-faint"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> {{ _("to send") }}</span>
+        <button class="btn btn-primary btn-sm" data-busy="{{ _('Thinking…') }}">{{ _("Send") }} {{ ui.icon('arrow-right', 14) }}</button>
       </div>
     </form>
   </section>
@@ -99,15 +99,16 @@
   });
   box?.form.addEventListener('submit', (e) => {
     const btn = e.target.querySelector('button:not([type=button])');
-    if (btn) { btn.disabled = true; btn.textContent = 'Thinking…'; }
+    if (btn) { btn.disabled = true; btn.textContent = btn.dataset.busy; }
   });
   document.querySelectorAll('.copy-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const text = btn.closest('.bubble').querySelector('.msg-text').textContent.trim();
       try {
         await navigator.clipboard.writeText(text);
-        btn.textContent = 'Copied';
-        setTimeout(() => (btn.textContent = 'Copy'), 1500);
+        const label = btn.textContent;
+        btn.textContent = btn.dataset.copied;
+        setTimeout(() => (btn.textContent = label), 1500);
       } catch (e) {
         btn.textContent = 'Press Ctrl+C';
       }

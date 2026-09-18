@@ -1,131 +1,136 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Positions · ApplyList{% endblock %}
+{% block title %}{{ _("Positions") }} · ApplyList{% endblock %}
 {% block content %}
 {% set badges = {
   'interested': '', 'applied': 'badge-info', 'interview': 'badge-accent',
   'offer': 'badge-success', 'rejected': 'badge-danger', 'archived': ''
 } %}
+{% set filtering = q or category or status %}
+{% set open_add = request.query_params.get('add') or (not positions and not filtering) %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Positions</h1>
-    <p class="page-subtitle">PhD calls, fellowships and RA posts, with their status and deadlines.</p>
+    <h1 class="page-title">{{ _("Positions") }}</h1>
+    <p class="page-subtitle">{{ _("PhD calls, fellowships and RA posts, with their status and deadlines.") }}</p>
   </div>
 </div>
 
 <div class="grid grid-cols-1 gap-6">
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    {{ ui.stat('Positions', stats.total) }}
-    {{ ui.stat('Applied or further', stats.applied, cls='text-accent') }}
-    {{ ui.stat('Due within 14 days', stats.due_soon, cls='text-warning') }}
-    {{ ui.stat('Deadline passed', stats.overdue, cls='text-danger') }}
+    {{ ui.stat(_('Positions'), stats.total) }}
+    {{ ui.stat(_('Applied or further'), stats.applied, cls='text-accent') }}
+    {{ ui.stat(_('Due within 14 days'), stats.due_soon, cls='text-warning') }}
+    {{ ui.stat(_('Deadline passed'), stats.overdue, cls='text-danger') }}
   </div>
 
-  <section class="card">
-    <div class="card-header"><h2 class="card-title">Add a position</h2></div>
+  <details class="card panel" {% if open_add %}open{% endif %} id="add">
+    <summary class="card-header">
+      <span class="card-title flex items-center gap-2">{{ ui.icon('plus', 15) }}{{ _("Add a position") }}</span>
+      <span class="text-xs text-muted when-closed">{{ _("Click to open") }}</span>
+      <span class="text-xs text-muted when-open">{{ _("Click to close") }}</span>
+    </summary>
     <form action="/positions/add" method="post" class="card-body grid md:grid-cols-6 gap-3">
-      <label class="field md:col-span-3"><span class="label">Field / title</span>
-        <input name="field" required placeholder="e.g. PhD Neuroimaging at McGill" class="input" /></label>
-      <label class="field md:col-span-3"><span class="label">Link</span>
-        <input name="link" required placeholder="Announcement or application URL" class="input" /></label>
-      <label class="field md:col-span-2"><span class="label">Category</span>
-        <input name="category" list="pcats" placeholder="General" class="input" /></label>
+      <label class="field md:col-span-3"><span class="label">{{ _("Position") }}</span>
+        <input name="field" required placeholder="{{ _('e.g. PhD in Neuroimaging, McGill') }}" class="input" /></label>
+      <label class="field md:col-span-3"><span class="label">{{ _("Link") }}</span>
+        <input name="link" required placeholder="{{ _('Announcement or application page') }}" class="input ltr" /></label>
+      <label class="field md:col-span-2"><span class="label">{{ _("Category") }}</span>
+        <input name="category" list="pcats" placeholder="{{ _('General') }}" class="input" /></label>
       <datalist id="pcats">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
-      <label class="field md:col-span-2"><span class="label">Status</span>
+      <label class="field md:col-span-2"><span class="label">{{ _("Status") }}</span>
         <select name="status" class="input">
-          {% for s in statuses %}<option value="{{ s }}">{{ s|capitalize }}</option>{% endfor %}
+          {% for s in statuses %}<option value="{{ s }}">{{ _(s|capitalize) }}</option>{% endfor %}
         </select></label>
-      <label class="field md:col-span-2"><span class="label">Deadline</span>
+      <label class="field md:col-span-2"><span class="label">{{ _("Deadline") }} <span class="label-optional">({{ _("optional") }})</span></span>
         <input type="date" name="deadline" class="input" /></label>
-      <label class="field md:col-span-6"><span class="label">Notes <span class="label-optional">(optional)</span></span>
-        <textarea name="notes" rows="2" class="input"></textarea></label>
+      <label class="field md:col-span-6"><span class="label">{{ _("Notes") }} <span class="label-optional">({{ _("optional") }})</span></span>
+        <textarea name="notes" rows="2" class="input" placeholder="{{ _('Requirements, referees, anything to remember…') }}"></textarea></label>
       <div class="md:col-span-6">
-        <button class="btn btn-primary">{{ ui.icon('plus', 15) }}Save position</button>
+        <button class="btn btn-primary">{{ ui.icon('plus', 15) }}{{ _("Save position") }}</button>
       </div>
     </form>
-  </section>
+  </details>
 
   <section class="card">
     <div class="card-header">
-      <form method="get" action="/positions" class="toolbar">
-        <div class="relative">
-          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">{{ ui.icon('search', 15) }}</span>
-          <input name="q" value="{{ q }}" placeholder="Search field, link, notes…" class="input input-sm w-64" style="padding-left: 2rem" aria-label="Search" />
-        </div>
-        <select name="status" class="input input-sm w-auto" aria-label="Status">
-          <option value="">All statuses</option>
-          {% for s in statuses %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
+      <form method="get" action="/positions" class="toolbar" data-autosubmit>
+        <label class="search">
+          {{ ui.icon('search', 15) }}
+          <input name="q" value="{{ q }}" placeholder="{{ _('Search positions and notes…') }}" class="input input-sm w-64" aria-label="{{ _('Search') }}" />
+        </label>
+        <select name="status" class="input input-sm w-auto" aria-label="{{ _('Status') }}">
+          <option value="">{{ _("All statuses") }}</option>
+          {% for s in statuses %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ _(s|capitalize) }}</option>{% endfor %}
         </select>
-        <select name="category" class="input input-sm w-auto" aria-label="Category">
-          <option value="">All categories</option>
-          {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        <select name="category" class="input input-sm w-auto" aria-label="{{ _('Category') }}">
+          <option value="">{{ _("All categories") }}</option>
+          {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ _(c) }}</option>{% endfor %}
         </select>
-        <select name="sort" class="input input-sm w-auto" aria-label="Sort">
-          {% for value, label in [('field','Sort: Field'), ('deadline','Sort: Deadline'), ('status','Sort: Status'), ('category','Sort: Category'), ('recent','Sort: Recently added')] %}
+        <select name="sort" class="input input-sm w-auto" aria-label="{{ _('Sort') }}">
+          {% for value, label in [('field', _('Sort: Name')), ('deadline', _('Sort: Deadline')), ('status', _('Sort: Status')), ('category', _('Sort: Category')), ('recent', _('Sort: Recently added'))] %}
             <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-        <button class="btn btn-secondary btn-sm">Apply</button>
-        {% if q or category or status %}<a href="/positions" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+        <noscript><button class="btn btn-secondary btn-sm">{{ _("Apply") }}</button></noscript>
+        {% if filtering %}<a href="/positions" class="btn btn-ghost btn-sm">{{ _("Clear") }}</a>{% endif %}
       </form>
     </div>
 
     {% if not positions %}
-      {% if q or category or status %}
-        {% call ui.empty('search', 'Nothing matches that filter.') %}
-          <a href="/positions" class="btn btn-secondary btn-sm mt-4">Clear filters</a>
+      {% if filtering %}
+        {% call ui.empty('search', _('Nothing matches that search.')) %}
+          <a href="/positions" class="btn btn-secondary btn-sm mt-4">{{ _("Clear filters") }}</a>
         {% endcall %}
       {% else %}
-        {{ ui.empty('briefcase', 'No positions yet', 'Add PhD calls, fellowships and RA posts above to track their deadlines.') }}
+        {{ ui.empty('briefcase', _('No positions yet'), _('Add PhD calls, fellowships and RA posts to keep track of their deadlines.')) }}
       {% endif %}
     {% else %}
     <div class="table-wrap">
-      <table class="table">
+      <table class="table table-stack">
         <thead>
           <tr>
-            <th>Field</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Deadline</th>
-            <th>Link</th>
-            <th class="text-right">Actions</th>
+            <th>{{ _("Position") }}</th>
+            <th>{{ _("Status") }}</th>
+            <th>{{ _("Deadline") }}</th>
+            <th>{{ _("Category") }}</th>
+            <th class="text-end">{{ _("Actions") }}</th>
           </tr>
         </thead>
         <tbody>
           {% for p in positions %}
           {% set overdue = p.deadline and p.deadline < today and p.status == 'interested' %}
-          {% set soon = p.deadline and not overdue and (p.deadline - today).days <= 14 and (p.deadline - today).days >= 0 %}
+          {% set days_left = (p.deadline - today).days if p.deadline else none %}
+          {% set soon = p.deadline and not overdue and 0 <= days_left <= 14 %}
           <tr>
-            <td>
-              <div class="font-medium">{{ p.field }}</div>
-              {% if p.notes %}<div class="text-xs text-muted mt-0.5 max-w-md truncate" title="{{ p.notes }}">{{ p.notes }}</div>{% endif %}
+            <td class="cell-title">
+              <a href="{{ p.link }}" target="_blank" rel="noopener" class="font-medium hover:underline inline-flex items-center gap-1"><bdi>{{ p.field }}</bdi> <span class="text-faint">{{ ui.icon('external', 12) }}</span></a>
+              {% if p.notes %}<div class="text-xs text-muted mt-0.5 max-w-md truncate" dir="auto" title="{{ p.notes }}">{{ p.notes }}</div>{% endif %}
             </td>
-            <td><span class="badge">{{ p.category or 'General' }}</span></td>
-            <td>
+            <td data-label="{{ _('Status') }}">
               <form action="/positions/status/{{ p.id }}" method="post">
-                <select name="status" onchange="this.form.submit()" aria-label="Status"
+                <select name="status" onchange="this.form.submit()" aria-label="{{ _('Status') }}"
                         class="badge badge-select {{ badges.get(p.status, '') }}">
-                  {% for s in ['interested','applied','interview','offer','rejected','archived'] %}
-                    <option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s|capitalize }}</option>
+                  {% for s in statuses %}
+                    <option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ _(s|capitalize) }}</option>
                   {% endfor %}
                 </select>
               </form>
             </td>
-            <td class="whitespace-nowrap">
+            <td data-label="{{ _('Deadline') }}" class="whitespace-nowrap">
               {% if p.deadline %}
                 <span class="{% if overdue %}text-danger font-medium{% elif soon %}text-warning font-medium{% endif %}">
-                  {{ p.deadline | d }}{% if soon %} · {{ (p.deadline - today).days }}d left{% elif overdue %} · passed{% endif %}
+                  {{ p.deadline | d }}
                 </span>
+                {% if soon %}<span class="badge badge-warning ms-1">{% if days_left == 0 %}{{ _("Today") }}{% else %}{{ _("{n} days left", n=days_left) }}{% endif %}</span>
+                {% elif overdue %}<span class="badge badge-danger ms-1">{{ _("Passed") }}</span>{% endif %}
               {% else %}<span class="text-faint">—</span>{% endif %}
             </td>
-            <td>
-              <a href="{{ p.link }}" target="_blank" rel="noopener" class="link inline-flex items-center gap-1">Open {{ ui.icon('external', 13) }}</a>
-            </td>
-            <td>
+            <td data-label="{{ _('Category') }}"><span class="badge">{{ _(p.category or 'General') }}</span></td>
+            <td class="cell-actions">
               <div class="flex gap-1 justify-end">
-                <a href="/positions/edit/{{ p.id }}" class="icon-btn" title="Edit" aria-label="Edit">{{ ui.icon('pencil', 15) }}</a>
-                <form action="/positions/delete/{{ p.id }}" method="post" onsubmit="return confirm('Delete this position?')">
-                  <button class="icon-btn hover:text-danger" title="Delete" aria-label="Delete">{{ ui.icon('trash', 15) }}</button>
+                <a href="/positions/edit/{{ p.id }}" class="icon-btn" title="{{ _('Edit') }}" aria-label="{{ _('Edit') }}">{{ ui.icon('pencil', 15) }}</a>
+                <form action="/positions/delete/{{ p.id }}" method="post" data-confirm="{{ _('Delete this position?') }}">
+                  <button class="icon-btn hover:text-danger" title="{{ _('Delete') }}" aria-label="{{ _('Delete') }}">{{ ui.icon('trash', 15) }}</button>
                 </form>
               </div>
             </td>

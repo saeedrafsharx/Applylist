@@ -3,6 +3,7 @@
   {% set icons = {'success': 'check-circle', 'error': 'alert', 'warning': 'alert', 'info': 'info'} %}
   {% set level = flash.level if flash.level in icons else 'info' %}
   <div class="alert alert-{{ level }} mb-6" role="status">
-    {{ ui.icon(icons[level], 16) }}<span>{{ flash.message }}</span>
+    {{ ui.icon(icons[level], 16) }}<span>{{ _(flash.message) }}</span>
+    <button type="button" class="alert-close" aria-label="{{ _('Dismiss') }}" onclick="this.parentElement.remove()">{{ ui.icon('x', 15) }}</button>
   </div>
 {% endif %}

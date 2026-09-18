@@ -1,13 +1,15 @@
 {# Expects: page, pages, and `base` (the path) plus `params` (a query string without page=) #}
 {% if pages > 1 %}
 <nav class="flex items-center justify-between gap-4 mt-6">
-  <span class="text-sm text-muted">Page {{ page }} of {{ pages }}{% if total is defined %} · {{ "{:,}".format(total) }} results{% endif %}</span>
+  <span class="text-sm text-muted">
+    {{ _("Page {page} of {pages}", page=page, pages=pages) }}{% if total is defined %} · {{ _("{n} results", n="{:,}".format(total)) }}{% endif %}
+  </span>
   <div class="flex gap-2">
     {% if page > 1 %}
-      <a href="{{ base }}?{{ params }}page={{ page - 1 }}" class="btn btn-secondary btn-sm">Previous</a>
+      <a href="{{ base }}?{{ params }}page={{ page - 1 }}" class="btn btn-secondary btn-sm">{{ _("Previous") }}</a>
     {% endif %}
     {% if page < pages %}
-      <a href="{{ base }}?{{ params }}page={{ page + 1 }}" class="btn btn-secondary btn-sm">Next</a>
+      <a href="{{ base }}?{{ params }}page={{ page + 1 }}" class="btn btn-secondary btn-sm">{{ _("Next") }}</a>
     {% endif %}
   </div>
 </nav>

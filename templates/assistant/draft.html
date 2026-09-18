@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Draft an email · Assistant{% endblock %}
+{% block title %}{{ _("Draft an email") }} · {{ _("Assistant") }}{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
-  <a href="/assistant" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Assistant</a>
+  <a href="/assistant" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}{{ _("Assistant") }}</a>
   <div class="page-header">
     <div>
-      <h1 class="page-title">Draft an email</h1>
-      <p class="page-subtitle">Pick a contact you're already tracking. The draft is built from their research focus and your notes.</p>
+      <h1 class="page-title">{{ _("Draft an email") }}</h1>
+      <p class="page-subtitle">{{ _("Pick a professor you're already tracking. The draft is built from their research focus and your notes.") }}</p>
     </div>
   </div>
 
   {% if not contacts %}
     <div class="card">
-      {% call ui.empty('users', 'You have no contacts yet', 'Add one first, then come back to draft an email.') %}
-        <a href="/professors" class="btn btn-primary btn-sm mt-4">Add a contact</a>
+      {% call ui.empty('users', _('You have no professors yet'), _('Add one first, then come back to draft an email.')) %}
+        <a href="/professors?add=1" class="btn btn-primary btn-sm mt-4">{{ _("Add a professor") }}</a>
       {% endcall %}
     </div>
   {% else %}
   <section class="card">
-    <form method="post" action="/assistant/draft">
+    <form method="post" action="/assistant/draft" id="draft-form">
       <div class="card-body grid gap-4">
         <label class="field">
-          <span class="label">Recipient</span>
+          <span class="label">{{ _("Recipient") }}</span>
           <select name="contact_id" required class="input">
             {% for c in contacts %}
               <option value="{{ c.id }}" {% if c.id == selected_id %}selected{% endif %}>
-                {{ c.name }} — {{ c.university }}{% if c.email_sent %} (already emailed){% endif %}
+                {{ c.name }} — {{ c.university }}{% if c.email_sent %} ({{ _("already emailed") }}){% endif %}
               </option>
             {% endfor %}
           </select>
@@ -34,37 +34,45 @@
 
         <div class="grid sm:grid-cols-2 gap-4">
           <label class="field">
-            <span class="label">Purpose</span>
+            <span class="label">{{ _("Purpose") }}</span>
             <select name="purpose" class="input">
-              <option value="first_contact">First contact — introduce myself</option>
-              <option value="follow_up">Follow-up — no reply yet</option>
-              <option value="thank_you">Thank you — they replied</option>
-              <option value="application_update">Update — I've submitted my application</option>
+              <option value="first_contact">{{ _("First contact — introduce myself") }}</option>
+              <option value="follow_up">{{ _("Follow-up — no reply yet") }}</option>
+              <option value="thank_you">{{ _("Thank you — they replied") }}</option>
+              <option value="application_update">{{ _("Update — I've submitted my application") }}</option>
             </select>
           </label>
           <label class="field">
-            <span class="label">Tone</span>
+            <span class="label">{{ _("Tone") }}</span>
             <select name="tone" class="input">
-              <option value="professional and warm">Professional and warm</option>
-              <option value="formal and concise">Formal and concise</option>
-              <option value="enthusiastic but grounded">Enthusiastic but grounded</option>
+              <option value="professional and warm">{{ _("Professional and warm") }}</option>
+              <option value="formal and concise">{{ _("Formal and concise") }}</option>
+              <option value="enthusiastic but grounded">{{ _("Enthusiastic but grounded") }}</option>
             </select>
           </label>
         </div>
 
         <label class="field">
-          <span class="label">About you <span class="label-optional">(optional, but it makes the draft much better)</span></span>
-          <textarea name="extra" rows="4" class="input"
-                    placeholder="e.g. MSc in Biomedical Engineering, Sharif University. Thesis on EEG source localization. Applying for Fall 2027. Python, MNE, PyTorch."></textarea>
-          <span class="hint">Anything you leave out becomes a [placeholder] — it won't be invented.</span>
+          <span class="label">{{ _("About you") }} <span class="label-optional">({{ _("optional, but it makes the draft much better") }})</span></span>
+          <textarea name="extra" rows="4" class="input" dir="auto"
+                    placeholder="{{ _('e.g. MSc in Biomedical Engineering, Sharif University. Thesis on EEG source localization. Applying for Fall 2027. Python, MNE, PyTorch.') }}"></textarea>
+          <span class="hint">{{ _("Anything you leave out becomes a [placeholder] — it won't be invented.") }}</span>
         </label>
       </div>
       <div class="card-footer flex flex-wrap items-center justify-between gap-3">
-        <span class="text-xs text-muted">Uses 1 of your {{ quota - used }} remaining messages this month.</span>
-        <button class="btn btn-primary">{{ ui.icon('sparkles', 15) }}Write the draft</button>
+        <span class="text-xs text-muted">{{ _("Uses 1 of your {n} remaining messages this month.", n=quota - used) }}</span>
+        <button class="btn btn-primary" data-busy="{{ _('Writing…') }}">{{ ui.icon('sparkles', 15) }}{{ _("Write the draft") }}</button>
       </div>
     </form>
   </section>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById('draft-form')?.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('button[data-busy]');
+    if (btn) { btn.disabled = true; btn.textContent = btn.dataset.busy; }
+  });
+</script>
 {% endblock %}

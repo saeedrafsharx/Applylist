@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Edit position · ApplyList{% endblock %}
+{% block title %}{{ _("Edit position") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto">
-  <a href="/positions" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Positions</a>
+  <a href="/positions" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}{{ _("Positions") }}</a>
   <div class="page-header">
-    <h1 class="page-title">Edit position</h1>
+    <h1 class="page-title">{{ _("Edit position") }}</h1>
   </div>
 
   <section class="card">
     <form action="/positions/edit/{{ p.id }}" method="post">
       <div class="card-body grid md:grid-cols-2 gap-4">
-        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
-        <label class="field md:col-span-2"><span class="label">Field / title</span>
+        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ _(error) }}</span></div>{% endif %}
+        <label class="field md:col-span-2"><span class="label">{{ _("Position") }}</span>
           <input name="field" value="{{ p.field }}" required class="input" /></label>
-        <label class="field md:col-span-2"><span class="label">Link</span>
-          <input name="link" value="{{ p.link }}" required class="input" /></label>
-        <label class="field"><span class="label">Category</span>
+        <label class="field md:col-span-2"><span class="label">{{ _("Link") }}</span>
+          <input name="link" value="{{ p.link }}" required class="input ltr" /></label>
+        <label class="field"><span class="label">{{ _("Category") }}</span>
           <input name="category" value="{{ p.category or 'General' }}" class="input" /></label>
-        <label class="field"><span class="label">Status</span>
+        <label class="field"><span class="label">{{ _("Status") }}</span>
           <select name="status" class="input">
-            {% for s in statuses %}<option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
+            {% for s in statuses %}<option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ _(s|capitalize) }}</option>{% endfor %}
           </select></label>
-        <label class="field"><span class="label">Deadline</span>
+        <label class="field"><span class="label">{{ _("Deadline") }}</span>
           <input type="date" name="deadline" value="{{ p.deadline.isoformat() if p.deadline else '' }}" class="input" /></label>
-        <label class="field md:col-span-2"><span class="label">Notes</span>
+        <label class="field md:col-span-2"><span class="label">{{ _("Notes") }}</span>
           <textarea name="notes" rows="4" class="input">{{ p.notes or '' }}</textarea></label>
       </div>
       <div class="card-footer flex items-center gap-2">
-        <button class="btn btn-primary">Save changes</button>
-        <a href="/positions" class="btn btn-ghost">Cancel</a>
+        <button class="btn btn-primary">{{ _("Save changes") }}</button>
+        <a href="/positions" class="btn btn-ghost">{{ _("Cancel") }}</a>
       </div>
     </form>
   </section>

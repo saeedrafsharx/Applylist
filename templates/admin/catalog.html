@@ -79,7 +79,7 @@
           </form>
         {% else %}
           <form method="post" action="/admin/catalog/{{ p.id }}/remove" class="toolbar"
-                onsubmit="return confirm('Take down {{ p.name }}? A later scrape will not bring them back.')">
+                data-confirm="Take down {{ p.name }}? A later scrape will not bring them back.">
             <input name="reason" placeholder="Reason (optional)" class="input input-sm w-64" />
             <button class="btn btn-danger btn-sm">Take down</button>
           </form>

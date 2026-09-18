@@ -1,41 +1,41 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Faculty search · ApplyList{% endblock %}
+{% block title %}{{ _("Faculty search") }} · ApplyList{% endblock %}
 {% block content %}
-<a href="/database" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Database</a>
+<a href="/database" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}{{ _("Database") }}</a>
 <div class="page-header">
   <div>
-    <h1 class="page-title">Faculty search</h1>
-    <p class="page-subtitle">Search by name, research area or department.</p>
+    <h1 class="page-title">{{ _("Faculty search") }}</h1>
+    <p class="page-subtitle">{{ _("Search by name, research area or department.") }}</p>
   </div>
-  <a href="/database/jobs" class="btn btn-secondary">Browse role titles {{ ui.icon('arrow-right', 15) }}</a>
+  <a href="/database/jobs" class="btn btn-secondary">{{ _("Browse role titles") }} {{ ui.icon('arrow-right', 15) }}</a>
 </div>
 
-<form method="get" action="/database/professors" class="card card-body toolbar mb-5">
+<form method="get" action="/database/professors" class="card card-body toolbar mb-5" data-autosubmit>
   <label class="field flex-1 min-w-[16rem]">
-    <span class="label">Search</span>
-    <input name="q" value="{{ q }}" placeholder="e.g. computational neuroimaging" class="input" />
+    <span class="label">{{ _("Search") }}</span>
+    <span class="search">{{ ui.icon('search', 15) }}<input name="q" value="{{ q }}" placeholder="{{ _('e.g. computational neuroimaging') }}" class="input" /></span>
   </label>
   <label class="field">
-    <span class="label">University</span>
+    <span class="label">{{ _("University") }}</span>
     <select name="university" class="input w-auto">
-      <option value="">All</option>
+      <option value="">{{ _("All") }}</option>
       {% for u in universities %}<option value="{{ u.slug }}" {% if u.slug == university %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
     </select>
   </label>
   <label class="field">
-    <span class="label">Country</span>
+    <span class="label">{{ _("Country") }}</span>
     <select name="country" class="input w-auto">
-      <option value="">All</option>
-      {% for c in countries %}<option value="{{ c }}" {% if c == country %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      <option value="">{{ _("All") }}</option>
+      {% for c in countries %}<option value="{{ c }}" {% if c == country %}selected{% endif %}>{{ _(c) }}</option>{% endfor %}
     </select>
   </label>
-  <button class="btn btn-primary">{{ ui.icon('search', 15) }}Search</button>
-  {% if q or university or country %}<a href="/database/professors" class="btn btn-ghost">Clear</a>{% endif %}
+  <button class="btn btn-primary">{{ ui.icon('search', 15) }}{{ _("Search") }}</button>
+  {% if q or university or country %}<a href="/database/professors" class="btn btn-ghost">{{ _("Clear") }}</a>{% endif %}
 </form>
 
 {% if not rows %}
-  <div class="card">{{ ui.empty('search', 'No entries match that search.', 'Try a broader research term, or clear the university filter.') }}</div>
+  <div class="card">{{ ui.empty('search', _('No entries match that search.'), _('Try a broader research term, or clear the university filter.')) }}</div>
 {% else %}
   <div class="card divide">
     {% for p in rows %}
@@ -44,27 +44,27 @@
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-semibold">{{ p.name }}</span>
           {% if p.title %}<span class="badge">{{ p.title }}</span>{% endif %}
-          {% if p.verified_at %}<span class="badge badge-success" title="Checked by an admin on {{ p.verified_at | dt }}">{{ ui.icon('check', 11) }}Verified</span>{% endif %}
+          {% if p.verified_at %}<span class="badge badge-success" title="{{ _('Checked by an admin') }}">{{ ui.icon('check', 11) }}{{ _("Verified") }}</span>{% endif %}
         </div>
         <div class="text-muted mt-0.5">
           {{ p.university.name if p.university else '' }}{% if p.department %} · {{ p.department }}{% endif %}
         </div>
         {% if p.research_focus %}
-          <p class="mt-2 line-clamp-2">{{ p.research_focus[:280] }}{% if p.research_focus|length > 280 %}…{% endif %}</p>
+          <p class="mt-2 line-clamp-2" dir="auto">{{ p.research_focus[:280] }}{% if p.research_focus|length > 280 %}…{% endif %}</p>
         {% endif %}
         <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {% if p.email %}<a href="mailto:{{ p.email }}" class="link mono">{{ p.email }}</a>{% endif %}
-          {% if p.profile_url %}<a href="{{ p.profile_url }}" target="_blank" rel="noopener" class="link-muted inline-flex items-center gap-1">Profile {{ ui.icon('external', 11) }}</a>{% endif %}
-          <a href="{{ p.source_url }}" target="_blank" rel="noopener" class="link-muted" title="The directory page this entry came from">Source</a>
-          {% if p.scraped_at %}<span class="text-faint">Read {{ p.scraped_at | dt('%Y-%m-%d') }}</span>{% endif %}
+          {% if p.profile_url %}<a href="{{ p.profile_url }}" target="_blank" rel="noopener" class="link-muted inline-flex items-center gap-1">{{ _("Profile") }} {{ ui.icon('external', 11) }}</a>{% endif %}
+          <a href="{{ p.source_url }}" target="_blank" rel="noopener" class="link-muted" title="{{ _('The directory page this entry came from') }}">{{ _("Source") }}</a>
+          {% if p.scraped_at %}<span class="text-faint">{{ _("Updated {date}", date=p.scraped_at | dt('%Y-%m-%d')) }}</span>{% endif %}
         </div>
       </div>
       <div class="flex items-start">
         {% if p.id in saved_ids %}
-          <span class="badge">{{ ui.icon('check', 11) }}In your list</span>
+          <span class="badge">{{ ui.icon('check', 11) }}{{ _("In your list") }}</span>
         {% else %}
           <form action="/database/save/{{ p.id }}" method="post">
-            <button class="btn btn-secondary btn-sm">{{ ui.icon('plus', 14) }}Save to contacts</button>
+            <button class="btn btn-secondary btn-sm">{{ ui.icon('plus', 14) }}{{ _("Save to my professors") }}</button>
           </form>
         {% endif %}
       </div>

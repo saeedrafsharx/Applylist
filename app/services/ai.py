@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..i18n import _
 from ..models import AIMessage, AIUsage, Contact, Conversation, Position, User
 
 log = logging.getLogger(__name__)
@@ -208,8 +209,7 @@ def send_message(
     usage_row = get_usage(db, user.id)
     if usage_row.message_count >= quota:
         raise QuotaExceeded(
-            f"You've used all {quota} assistant messages for this month. "
-            "Your quota resets at the start of next month."
+            _("You've used all {quota} assistant messages for this month. Your quota resets at the start of next month.", quota=quota)
         )
 
     now = datetime.now(timezone.utc)
@@ -247,13 +247,12 @@ def send_message(
     except openai.PermissionDeniedError as exc:
         log.exception("AI permission denied")
         raise AIError(
-            "The assistant was refused by the provider. This is often a region "
-            "restriction — check the server's OPENAI_BASE_URL."
+            _("The assistant was refused by the provider. Please contact support.")
         ) from exc
     except openai.NotFoundError as exc:
         log.exception("AI model not found: %s", settings.openai_model)
         raise AIError(
-            f"The configured model ({settings.openai_model}) isn't available on this provider."
+            _("The assistant's model isn't available right now. Please contact support.")
         ) from exc
     except openai.RateLimitError as exc:
         raise AIError("The assistant is busy right now. Please try again in a moment.") from exc

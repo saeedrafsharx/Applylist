@@ -1,51 +1,63 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Your account · ApplyList{% endblock %}
+{% block title %}{{ _("Your account") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto grid gap-6">
   <div class="page-header mb-0">
-    <h1 class="page-title">Your account</h1>
+    <h1 class="page-title">{{ _("Your account") }}</h1>
     {% if not subscription %}
-      <a href="/pricing" class="btn btn-primary">Upgrade to Pro</a>
+      <a href="/pricing" class="btn btn-primary">{{ _("Upgrade to Pro") }}</a>
     {% else %}
-      <a href="/pricing" class="btn btn-secondary">Extend or change plan</a>
+      <a href="/pricing" class="btn btn-secondary">{{ _("Extend or change plan") }}</a>
     {% endif %}
   </div>
 
   <section class="card card-body">
     <dl class="grid sm:grid-cols-2 gap-5">
-      <div><dt class="stat-label">Username</dt><dd class="mt-0.5 font-medium">{{ user.username }}</dd></div>
-      <div><dt class="stat-label">Email</dt>
+      <div><dt class="stat-label">{{ _("Username") }}</dt><dd class="mt-0.5 font-medium ltr">{{ user.username }}</dd></div>
+      <div><dt class="stat-label">{{ _("Email") }}</dt>
         <dd class="mt-0.5 font-medium flex items-center gap-2">{{ user.email }}
-          {% if user.is_email_verified %}<span class="badge badge-success">{{ ui.icon('check', 11) }}Verified</span>
-          {% else %}<a href="/verify-email" class="badge badge-warning">Confirm</a>{% endif %}
+          {% if user.is_email_verified %}<span class="badge badge-success">{{ ui.icon('check', 11) }}{{ _("Verified") }}</span>
+          {% else %}<a href="/verify-email" class="badge badge-warning">{{ _("Confirm") }}</a>{% endif %}
         </dd>
       </div>
-      <div><dt class="stat-label">Member since</dt><dd class="mt-0.5 font-medium">{{ user.created_at | dt('%B %Y') }}</dd></div>
-      <div><dt class="stat-label">Current plan</dt>
+      <div><dt class="stat-label">{{ _("Member since") }}</dt><dd class="mt-0.5 font-medium">{{ user.created_at | dt('%B %Y') }}</dd></div>
+      <div><dt class="stat-label">{{ _("Current plan") }}</dt>
         <dd class="mt-0.5 font-medium">
           {% if subscription %}{{ subscription.plan.name }}
-            <span class="text-muted font-normal">· {% if subscription.expires_at %}{{ subscription.days_remaining }} days left{% else %}lifetime{% endif %}</span>
-          {% else %}Free{% endif %}
+            <span class="text-muted font-normal">· {% if subscription.expires_at %}{{ _("{n} days left", n=subscription.days_remaining) }}{% else %}{{ _("lifetime") }}{% endif %}</span>
+          {% else %}{{ _("Free") }}{% endif %}
         </dd>
       </div>
     </dl>
   </section>
 
+  <section class="card card-body flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div class="font-semibold">{{ _("Language") }}</div>
+      <p class="text-muted text-sm">{{ _("Chosen automatically from your location until you pick one.") }}</p>
+    </div>
+    <div class="pills">
+      {% for code, name in LANGUAGES.items() %}
+        <a href="/lang/{{ code }}" class="pill {% if get_lang() == code %}active{% endif %}" lang="{{ code }}">{{ name }}</a>
+      {% endfor %}
+    </div>
+  </section>
+
   <section class="card">
-    <div class="card-header"><h2 class="card-title">Payment history</h2></div>
+    <div class="card-header"><h2 class="card-title">{{ _("Payment history") }}</h2></div>
     {% if not payments %}
-      {{ ui.empty('file', 'No payments yet') }}
+      {{ ui.empty('file', _('No payments yet')) }}
     {% else %}
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>Date</th><th>Plan</th><th class="num">Amount</th><th>Status</th><th>Reference</th></tr></thead>
+        <thead><tr><th>{{ _("Date") }}</th><th>{{ _("Plan") }}</th><th class="num">{{ _("Amount") }}</th><th>{{ _("Status") }}</th><th>{{ _("Reference") }}</th></tr></thead>
         <tbody>
           {% for p in payments %}
           <tr>
             <td class="whitespace-nowrap">{{ (p.paid_at or p.created_at) | dt('%Y-%m-%d') }}</td>
             <td>{{ p.plan.name if p.plan else '—' }}</td>
-            <td class="num whitespace-nowrap">{{ "{:,}".format(p.amount_toman) }} T</td>
+            <td class="num whitespace-nowrap">{{ _("{amount} Toman", amount="{:,}".format(p.amount_toman)) }}</td>
             <td>{{ ui.status_badge(p.status) }}</td>
             <td class="mono text-xs cell-muted">{{ p.ref_id or '—' }}</td>
           </tr>

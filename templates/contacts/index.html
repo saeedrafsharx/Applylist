@@ -1,24 +1,26 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Professors · ApplyList{% endblock %}
+{% block title %}{{ _("Professors") }} · ApplyList{% endblock %}
 {% block content %}
+{% set filtering = q or category %}
+{% set open_add = request.query_params.get('add') or (not contacts and not filtering) %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Professors</h1>
-    <p class="page-subtitle">Everyone you plan to contact, and where each conversation stands.</p>
+    <h1 class="page-title">{{ _("Professors") }}</h1>
+    <p class="page-subtitle">{{ _("Everyone you plan to contact, and where each conversation stands.") }}</p>
   </div>
   <div class="flex flex-wrap gap-2">
-    <a href="/export.csv" class="btn btn-secondary">{{ ui.icon('download', 15) }}Export CSV</a>
+    <a href="/export.csv" class="btn btn-secondary">{{ ui.icon('download', 15) }}{{ _("Export CSV") }}</a>
     <details class="relative">
-      <summary class="btn btn-secondary list-none cursor-pointer">{{ ui.icon('upload', 15) }}Import</summary>
+      <summary class="btn btn-secondary list-none cursor-pointer">{{ ui.icon('upload', 15) }}{{ _("Import") }}</summary>
       <form action="/import.csv" method="post" enctype="multipart/form-data"
-            class="card card-body absolute right-0 mt-2 z-20 w-72 grid gap-3 shadow-lg">
+            class="card card-body absolute end-0 mt-2 z-20 w-72 grid gap-3 shadow-lg">
         <label class="field">
-          <span class="label">CSV file</span>
+          <span class="label">{{ _("CSV file") }}</span>
           <input type="file" name="file" accept=".csv,text/csv" required class="input" />
-          <span class="hint">Same columns as the export. Existing emails are updated.</span>
+          <span class="hint">{{ _("Same columns as the export. Existing emails are updated.") }}</span>
         </label>
-        <button class="btn btn-primary btn-sm justify-self-start">Import</button>
+        <button class="btn btn-primary btn-sm justify-self-start">{{ _("Import") }}</button>
       </form>
     </details>
   </div>
@@ -26,124 +28,133 @@
 
 <div class="grid grid-cols-1 gap-6">
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    {{ ui.stat('Total contacts', stats.total) }}
-    {{ ui.stat('Emailed', stats.sent, cls='text-success') }}
-    {{ ui.stat('Awaiting first email', stats.pending, cls='text-warning') }}
-    {{ ui.stat('Reminders sent', stats.reminders) }}
+    {{ ui.stat(_('Total'), stats.total) }}
+    {{ ui.stat(_('Emailed'), stats.sent, cls='text-success') }}
+    {{ ui.stat(_('Not emailed yet'), stats.pending, cls='text-warning') }}
+    {{ ui.stat(_('Follow-ups sent'), stats.reminders) }}
   </div>
 
   {% if imported %}
     <div class="alert alert-success">
       {{ ui.icon('check-circle', 16) }}
-      <span>Import complete: <strong>{{ imported }}</strong> added, <strong>{{ updated }}</strong> updated, <strong>{{ skipped }}</strong> skipped.</span>
+      <span>{{ _("Import complete: {added} added, {updated} updated, {skipped} skipped.", added=imported, updated=updated, skipped=skipped) }}</span>
     </div>
   {% endif %}
 
-  <section class="card">
-    <div class="card-header"><h2 class="card-title">Add a contact</h2></div>
+  <details class="card panel" {% if open_add %}open{% endif %} id="add">
+    <summary class="card-header">
+      <span class="card-title flex items-center gap-2">{{ ui.icon('plus', 15) }}{{ _("Add a professor") }}</span>
+      <span class="text-xs text-muted when-closed">{{ _("Click to open") }}</span>
+      <span class="text-xs text-muted when-open">{{ _("Click to close") }}</span>
+    </summary>
     <form action="/add" method="post" class="card-body grid md:grid-cols-6 gap-3">
-      <label class="field md:col-span-2"><span class="label">Name</span>
-        <input name="name" required class="input" placeholder="Dr. Jane Smith" /></label>
-      <label class="field md:col-span-2"><span class="label">University</span>
-        <input name="university" required class="input" placeholder="University of Toronto" /></label>
-      <label class="field md:col-span-2"><span class="label">Email</span>
+      <label class="field md:col-span-2"><span class="label">{{ _("Name") }}</span>
+        <input name="name" required class="input" placeholder="{{ _('e.g. Dr. Jane Smith') }}" autocomplete="off" /></label>
+      <label class="field md:col-span-2"><span class="label">{{ _("University") }}</span>
+        <input name="university" required class="input" placeholder="{{ _('e.g. University of Toronto') }}" /></label>
+      <label class="field md:col-span-2"><span class="label">{{ _("Email") }}</span>
         <input name="contact_email" required type="email" class="input" placeholder="jane.smith@utoronto.ca" /></label>
-      <label class="field md:col-span-3"><span class="label">Research focus</span>
-        <input name="research_focus" required class="input" placeholder="Computational neuroimaging" /></label>
-      <label class="field md:col-span-2"><span class="label">Source URL <span class="label-optional">(optional)</span></span>
-        <input name="source_url" class="input" placeholder="https://…" /></label>
-      <label class="field"><span class="label">Category</span>
-        <input name="category" list="categories" value="{{ category }}" class="input" placeholder="General" /></label>
+      <label class="field md:col-span-3"><span class="label">{{ _("Research focus") }}</span>
+        <input name="research_focus" required class="input" placeholder="{{ _('e.g. Computational neuroimaging') }}" /></label>
+      <label class="field md:col-span-2"><span class="label">{{ _("Source URL") }} <span class="label-optional">({{ _("optional") }})</span></span>
+        <input name="source_url" class="input ltr" placeholder="https://…" /></label>
+      <label class="field"><span class="label">{{ _("Category") }}</span>
+        <input name="category" list="categories" value="{{ category }}" class="input" placeholder="{{ _('General') }}" /></label>
       <datalist id="categories">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
-      <div class="md:col-span-6">
-        <button class="btn btn-primary">{{ ui.icon('plus', 15) }}Save contact</button>
+      <div class="md:col-span-6 flex flex-wrap items-center gap-3">
+        <button class="btn btn-primary">{{ ui.icon('plus', 15) }}{{ _("Save professor") }}</button>
+        {% if can_catalog %}<span class="text-sm text-muted">{{ _("or") }} <a href="/database/professors" class="link">{{ _("find one in the database") }}</a></span>{% endif %}
       </div>
     </form>
-  </section>
+  </details>
 
   <section class="card">
     <div class="card-header flex-wrap">
-      <form method="get" action="/professors" class="toolbar">
-        <div class="relative">
-          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">{{ ui.icon('search', 15) }}</span>
-          <input name="q" value="{{ q }}" placeholder="Search name, university, topic…" class="input input-sm w-64" style="padding-left: 2rem" aria-label="Search" />
-        </div>
-        <select name="category" class="input input-sm w-auto" aria-label="Category">
-          <option value="">All categories</option>
-          {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      <form method="get" action="/professors" class="toolbar" data-autosubmit>
+        <label class="search">
+          {{ ui.icon('search', 15) }}
+          <input name="q" value="{{ q }}" placeholder="{{ _('Search name, university, topic…') }}" class="input input-sm w-64" aria-label="{{ _('Search') }}" />
+        </label>
+        <select name="category" class="input input-sm w-auto" aria-label="{{ _('Category') }}">
+          <option value="">{{ _("All categories") }}</option>
+          {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ _(c) }}</option>{% endfor %}
         </select>
-        <select name="sort" class="input input-sm w-auto" aria-label="Sort">
-          {% for value, label in [('name','Sort: Name'), ('university','Sort: University'), ('email','Sort: Email'), ('category','Sort: Category'), ('recent','Sort: Recently added')] %}
+        <select name="sort" class="input input-sm w-auto" aria-label="{{ _('Sort') }}">
+          {% for value, label in [('name', _('Sort: Name')), ('university', _('Sort: University')), ('email', _('Sort: Email')), ('category', _('Sort: Category')), ('recent', _('Sort: Recently added'))] %}
             <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-        <button class="btn btn-secondary btn-sm">Apply</button>
-        {% if q or category or sort != 'name' %}<a href="/professors" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+        <noscript><button class="btn btn-secondary btn-sm">{{ _("Apply") }}</button></noscript>
+        {% if filtering or sort != 'name' %}<a href="/professors" class="btn btn-ghost btn-sm">{{ _("Clear") }}</a>{% endif %}
       </form>
-      <span class="text-xs text-muted">{{ contacts|length }} shown</span>
+      <span class="text-xs text-muted">{{ _("{n} shown", n=contacts|length) }}</span>
     </div>
 
     {% if not contacts %}
-      {% if q or category %}
-        {% call ui.empty('search', 'Nothing matches that filter.') %}
-          <a href="/professors" class="btn btn-secondary btn-sm mt-4">Clear filters</a>
+      {% if filtering %}
+        {% call ui.empty('search', _('Nothing matches that search.')) %}
+          <a href="/professors" class="btn btn-secondary btn-sm mt-4">{{ _("Clear filters") }}</a>
         {% endcall %}
       {% else %}
-        {% call ui.empty('users', 'No contacts yet', 'Add one above, or find supervisors in the database.') %}
-          <a href="/database" class="btn btn-secondary btn-sm mt-4">Browse the database</a>
-        {% endcall %}
+        {{ ui.empty('users', _('No professors yet'), _('Use the form above to add the first one.')) }}
       {% endif %}
     {% else %}
     <div class="table-wrap">
-      <table class="table">
+      <table class="table table-stack">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>University</th>
-            <th>Research focus</th>
-            <th>Email</th>
-            <th>Category</th>
-            <th>Emailed</th>
-            <th>Reminder</th>
-            <th class="text-right">Actions</th>
+            <th>{{ _("Name") }}</th>
+            <th>{{ _("University") }}</th>
+            <th>{{ _("Research focus") }}</th>
+            <th>{{ _("Email") }}</th>
+            <th>{{ _("Emailed") }}</th>
+            <th>{{ _("Follow-up") }}</th>
+            <th class="text-end">{{ _("Actions") }}</th>
           </tr>
         </thead>
         <tbody>
           {% for c in contacts %}
+          {% set waited = (now() - c.email_sent_at).days if c.email_sent and c.email_sent_at else 0 %}
+          {% set due = c.email_sent and not c.reminder_sent and waited >= 14 %}
           <tr>
-            <td class="whitespace-nowrap">
+            <td class="cell-title whitespace-nowrap">
               <span class="inline-flex items-center gap-2 font-medium">
-                <span class="dot {{ 'dot-success' if c.email_sent else '' }}"></span>{{ c.name }}
+                <span class="dot {{ 'dot-success' if c.email_sent else '' }}"></span><bdi>{{ c.name }}</bdi>
               </span>
+              {% if c.category and c.category != 'General' %}<span class="badge ms-1">{{ c.category }}</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap">{{ c.university }}</td>
-            <td class="cell-muted max-w-[15rem] truncate" title="{{ c.research_focus }}">{{ c.research_focus }}</td>
-            <td><a class="link" href="mailto:{{ c.contact_email }}">{{ c.contact_email }}</a></td>
-            <td><span class="badge">{{ c.category or 'General' }}</span></td>
-            <td class="whitespace-nowrap">
+            <td data-label="{{ _('University') }}" class="whitespace-nowrap"><bdi>{{ c.university }}</bdi></td>
+            <td data-label="{{ _('Research focus') }}" class="cell-muted max-w-[15rem] truncate" dir="auto" title="{{ c.research_focus }}">{{ c.research_focus }}</td>
+            <td data-label="{{ _('Email') }}"><a class="link ltr" href="mailto:{{ c.contact_email }}">{{ c.contact_email }}</a></td>
+            <td data-label="{{ _('Emailed') }}" class="whitespace-nowrap">
               <form action="/toggle-email/{{ c.id }}" method="post" class="inline">
                 <button class="badge toggle-chip {{ 'badge-success' if c.email_sent else '' }}"
-                        title="{{ 'Sent ' ~ (c.email_sent_at | dt) if c.email_sent_at else 'Mark as sent' }}">
-                  {{ ui.icon('check', 12) if c.email_sent }}{{ 'Sent' if c.email_sent else 'Not sent' }}
+                        title="{{ _('Click to undo') if c.email_sent else _('Click when you have sent the email') }}">
+                  {{ ui.icon('check', 12) if c.email_sent }}{{ _("Sent") if c.email_sent else _("Mark as sent") }}
                 </button>
               </form>
-              {% if c.email_sent_at %}<div class="text-xs text-faint mt-1">{{ c.email_sent_at | dt('%b %d') }}</div>{% endif %}
+              {% if c.email_sent_at %}<span class="text-xs text-faint ms-1">{{ c.email_sent_at | dt('%Y-%m-%d') }}</span>{% endif %}
             </td>
-            <td>
-              <form action="/toggle-reminder/{{ c.id }}" method="post">
-                <button class="badge toggle-chip {{ 'badge-accent' if c.reminder_sent else '' }}">
-                  {{ ui.icon('check', 12) if c.reminder_sent }}{{ 'Sent' if c.reminder_sent else 'Not sent' }}
+            <td data-label="{{ _('Follow-up') }}">
+              {% if c.email_sent %}
+              <form action="/toggle-reminder/{{ c.id }}" method="post" class="inline">
+                <button class="badge toggle-chip {{ 'badge-accent' if c.reminder_sent else ('badge-warning' if due else '') }}"
+                        title="{{ _('Click to undo') if c.reminder_sent else _('Click when you have sent a follow-up') }}">
+                  {% if c.reminder_sent %}{{ ui.icon('check', 12) }}{{ _("Sent") }}
+                  {% elif due %}{{ ui.icon('bell', 12) }}{{ _("Due — {days} days", days=waited) }}
+                  {% else %}{{ _("Not yet") }}{% endif %}
                 </button>
               </form>
+              {% else %}<span class="text-faint">—</span>{% endif %}
             </td>
-            <td>
+            <td class="cell-actions">
               <div class="flex items-center gap-1 justify-end">
                 {% if can_ai %}
-                  <a href="/assistant/draft?contact_id={{ c.id }}" class="btn btn-ghost btn-sm" title="Draft an email with the assistant">{{ ui.icon('sparkles', 14) }}Draft</a>
+                  <a href="/assistant/draft?contact_id={{ c.id }}" class="btn btn-ghost btn-sm" title="{{ _('Draft an email with the assistant') }}">{{ ui.icon('sparkles', 14) }}{{ _("Draft") }}</a>
                 {% endif %}
-                <a href="/edit/{{ c.id }}" class="icon-btn" title="Edit" aria-label="Edit {{ c.name }}">{{ ui.icon('pencil', 15) }}</a>
-                <form action="/delete/{{ c.id }}" method="post" onsubmit="return confirm('Delete {{ c.name }}? This cannot be undone.')">
-                  <button class="icon-btn hover:text-danger" title="Delete" aria-label="Delete {{ c.name }}">{{ ui.icon('trash', 15) }}</button>
+                <a href="/edit/{{ c.id }}" class="icon-btn" title="{{ _('Edit') }}" aria-label="{{ _('Edit') }}">{{ ui.icon('pencil', 15) }}</a>
+                <form action="/delete/{{ c.id }}" method="post" data-confirm="{{ _('Delete {name}? This cannot be undone.', name=c.name) }}">
+                  <button class="icon-btn hover:text-danger" title="{{ _('Delete') }}" aria-label="{{ _('Delete') }}">{{ ui.icon('trash', 15) }}</button>
                 </form>
               </div>
             </td>

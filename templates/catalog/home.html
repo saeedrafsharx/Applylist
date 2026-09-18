@@ -1,37 +1,43 @@
 {% extends "base.html" %}
 {% import "partials/ui.html" as ui %}
-{% block title %}Database · ApplyList{% endblock %}
+{% block title %}{{ _("Database") }} · ApplyList{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Supervisor database</h1>
+    <h1 class="page-title">{{ _("Supervisor database") }}</h1>
     <p class="page-subtitle max-w-2xl">
-      Faculty entries collected from universities' own public directories, with the research
-      area and contact page for each — so you can find supervisors who match your topic.
+      {{ _("Faculty entries collected from universities' own public directories, with the research area and contact page for each — so you can find supervisors who match your topic.") }}
     </p>
   </div>
 </div>
 
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
   {% for label, value in [
-      ('Faculty entries', totals.professors),
-      ('Universities', totals.universities),
-      ('Countries', totals.countries),
-      ('Role titles', totals.job_titles)] %}
+      (_('Faculty entries'), totals.professors),
+      (_('Universities'), totals.universities),
+      (_('Countries'), totals.countries),
+      (_('Role titles'), totals.job_titles)] %}
     {{ ui.stat(label, "{:,}".format(value)) }}
   {% endfor %}
 </div>
 
 {% if can_browse %}
+  <form method="get" action="/database/professors" class="card card-body mb-4 flex flex-wrap gap-2 items-center">
+    <label class="search flex-1 min-w-[14rem]">
+      {{ ui.icon('search', 15) }}
+      <input name="q" placeholder="{{ _('Search by research topic, e.g. machine learning') }}" class="input" autofocus aria-label="{{ _('Search') }}" />
+    </label>
+    <button class="btn btn-primary">{{ _("Search") }}</button>
+  </form>
   <div class="grid sm:grid-cols-2 gap-4">
     {% for href, icon, title, body in [
-        ('/database/professors', 'search', 'Search faculty', 'By name, research area, university or country. Save any entry straight into your contacts.'),
-        ('/database/jobs', 'briefcase', 'Browse role titles', 'The actual names positions are advertised under, by field and level.')] %}
+        ('/database/professors', 'search', _('Browse faculty'), _('Filter by university or country. Save any entry straight into your professors list.')),
+        ('/database/jobs', 'briefcase', _('Browse role titles'), _('The actual names positions are advertised under, by field and level.'))] %}
     <a href="{{ href }}" class="card card-body group">
       <div class="flex items-center gap-3">
         <div class="feature-icon">{{ ui.icon(icon, 17) }}</div>
         <span class="font-semibold">{{ title }}</span>
-        <span class="ml-auto text-muted">{{ ui.icon('arrow-right', 16, 'transition-transform group-hover:translate-x-0.5') }}</span>
+        <span class="ms-auto text-muted">{{ ui.icon('arrow-right', 16) }}</span>
       </div>
       <p class="mt-3 text-muted">{{ body }}</p>
     </a>
@@ -40,41 +46,40 @@
 {% else %}
   <section class="card">
     <div class="card-header">
-      <h2 class="card-title">A sample of what's inside</h2>
-      <span class="badge badge-accent">{{ ui.icon('lock', 11) }}Pro feature</span>
+      <h2 class="card-title">{{ _("A sample of what's inside") }}</h2>
+      <span class="badge badge-accent">{{ ui.icon('lock', 11) }}{{ _("Pro feature") }}</span>
     </div>
 
     {% if preview %}
     <div class="table-wrap">
-      <table class="table">
-        <thead><tr><th>Name</th><th>University</th><th>Research focus</th><th>Email</th></tr></thead>
+      <table class="table table-stack">
+        <thead><tr><th>{{ _("Name") }}</th><th>{{ _("University") }}</th><th>{{ _("Research focus") }}</th><th>{{ _("Email") }}</th></tr></thead>
         <tbody>
           {% for p in preview %}
           <tr>
-            <td class="font-medium whitespace-nowrap">{{ p.name }}</td>
-            <td>{{ p.university.name if p.university else '—' }}</td>
-            <td class="cell-muted max-w-sm truncate">{{ p.research_focus or p.title or '—' }}</td>
-            <td class="mono text-xs text-faint select-none">{{ mask_email(p.email) }}</td>
+            <td class="cell-title font-medium whitespace-nowrap">{{ p.name }}</td>
+            <td data-label="{{ _('University') }}">{{ p.university.name if p.university else '—' }}</td>
+            <td data-label="{{ _('Research focus') }}" class="cell-muted max-w-sm truncate">{{ p.research_focus or p.title or '—' }}</td>
+            <td data-label="{{ _('Email') }}" class="mono text-xs text-faint select-none">{{ mask_email(p.email) }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-      {{ ui.empty('database', 'The catalog is still being built', 'Check back soon.') }}
+      {{ ui.empty('database', _('The catalog is still being built'), _('Check back soon.')) }}
     {% endif %}
 
     <div class="card-footer text-center py-6">
-      <p class="font-semibold">Unlock full search and contact details</p>
-      <p class="text-muted mt-1">Search every entry, filter by research area, and save contacts into your own list with one click.</p>
-      <a href="/pricing?feature=catalog" class="btn btn-primary mt-4">See plans</a>
+      <p class="font-semibold">{{ _("Unlock full search and contact details") }}</p>
+      <p class="text-muted mt-1">{{ _("Search every entry, filter by research area, and save contacts into your own list with one click.") }}</p>
+      <a href="/pricing?feature=catalog" class="btn btn-primary mt-4">{{ _("See plans") }}</a>
     </div>
   </section>
 {% endif %}
 
 <p class="mt-8 text-xs text-muted max-w-2xl">
-  Entries come from pages universities publish themselves, and each one records the page it
-  came from and when it was last read. If you're listed here and would rather not be,
-  <a href="/database/takedown" class="link">ask us to remove you</a> — no account needed.
+  {{ _("Entries come from pages universities publish themselves, and each one records the page it came from and when it was last read.") }}
+  {{ _("If you're listed here and would rather not be,") }} <a href="/database/takedown" class="link">{{ _("ask us to remove you") }}</a> — {{ _("no account needed.") }}
 </p>
 {% endblock %}

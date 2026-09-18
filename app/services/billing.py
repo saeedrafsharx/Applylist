@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..i18n import _
 from ..models import Payment, Plan, Subscription, User
 
 log = logging.getLogger(__name__)
@@ -289,9 +290,7 @@ def verify_payment(db: Session, authority: str, status: str) -> tuple[Payment, b
         payment.error_message = f"Verification unreachable: {exc}"
         log.exception("Zarinpal verify failed for payment %s", payment.id)
         raise BillingError(
-            "We couldn't confirm your payment with the gateway. "
-            "If your account was charged, contact support with this reference: "
-            f"{authority}"
+            _("We couldn't confirm your payment with the gateway. If your account was charged, contact support with this reference: {ref}", ref=authority)
         ) from exc
 
     payment.raw_response = body

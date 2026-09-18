@@ -12,8 +12,9 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .bootstrap import seed
 from .config import settings
+from . import i18n
 from .db import session_scope
-from .deps import AppRedirect, render, set_flash
+from .deps import AppRedirect, render, safe_back, set_flash
 from .routers import admin, assistant, billing, catalog, contacts, pages, positions
 from .routers import auth as auth_router
 
@@ -54,14 +55,6 @@ app = FastAPI(
     redoc_url=None,
 )
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.secret_key,
-    session_cookie=settings.session_cookie,
-    max_age=settings.session_max_age,
-    same_site="lax",
-    https_only=settings.is_production,
-)
 
 
 class UserStateMiddleware(BaseHTTPMiddleware):
@@ -97,7 +90,34 @@ class UserStateMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class LanguageMiddleware(BaseHTTPMiddleware):
+    """
+    Decide the UI language once per request (see `i18n.resolve_language`).
+
+    It lives in a context variable, so `_()` in templates, routers and flash
+    messages all agree without being passed a language. The admin panel is
+    English-only: it is an operator tool, not part of the product.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        lang = "en" if request.url.path.startswith("/admin") else i18n.resolve_language(request)
+        i18n.set_lang(lang)
+        request.state.lang = lang
+        return await call_next(request)
+
+
+# Starlette runs the last-added middleware first. The session must be decoded
+# before UserStateMiddleware looks for the signed-in user, so it goes on last.
 app.add_middleware(UserStateMiddleware)
+app.add_middleware(LanguageMiddleware)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    session_cookie=settings.session_cookie,
+    max_age=settings.session_max_age,
+    same_site="lax",
+    https_only=settings.is_production,
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -118,6 +138,18 @@ async def _handle_404(request: Request, exc):
 async def _handle_500(request: Request, exc):  # pragma: no cover - defensive
     log.exception("Unhandled error on %s", request.url.path)
     return render(request, "errors/500.html", status_code=500)
+
+
+@app.get("/lang/{code}")
+def switch_language(request: Request, code: str):
+    """Remember an explicit language choice for a year, then go back."""
+    response = RedirectResponse(safe_back(request, "/"), status_code=303)
+    if code in i18n.LANGUAGES:
+        response.set_cookie(
+            i18n.COOKIE, code, max_age=60 * 60 * 24 * 365, samesite="lax",
+            secure=settings.is_production,
+        )
+    return response
 
 
 app.include_router(pages.router)
