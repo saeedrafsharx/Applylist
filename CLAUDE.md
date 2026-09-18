@@ -61,13 +61,15 @@ app/
 
 ### Auth dependency chain
 
-`require_user` → `require_verified` → `RequirePlan(feature)`, each building on the last, plus `require_admin`. A dependency that refuses raises `AppRedirect`, which an exception handler in `main.py` turns into a 303 plus a flash message — FastAPI dependencies can't return a redirect directly, hence the exception.
+`require_user` → `require_verified` → `require_plan(feature)`, each building on the last, plus `require_admin`. A dependency that refuses raises `AppRedirect`, which an exception handler in `main.py` turns into a 303 plus a flash message — FastAPI dependencies can't return a redirect directly, hence the exception.
 
 This is the one thing to get right when adding a route. **Pick the strictest dependency that fits**, because it is the only thing enforcing access:
 
 - `Depends(require_verified)` — anything touching a user's own data
-- `Depends(RequirePlan("catalog"))` / `Depends(RequirePlan("ai"))` — paid features
+- `Depends(require_plan("catalog"))` / `Depends(require_plan("ai"))` — paid features
 - `Depends(require_admin)` — already applied router-wide to `/admin`
+
+Dependencies in `deps.py` must be **functions, not callable classes**. This module uses `from __future__ import annotations`, and FastAPI resolves string annotations against the dependency's `__globals__` — which a class instance lacks. A callable class loses its annotations silently, `request: Request` is reinterpreted as a required query parameter, and every call to the route 422s. `require_plan` is a closure factory for exactly this reason.
 
 Ownership is still checked per-row inside handlers (`if obj.owner_id != user.id`), since no dependency can know which row a path parameter refers to. Contacts and positions each have a small `_owned()` helper; use it.
 

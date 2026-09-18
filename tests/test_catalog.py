@@ -17,17 +17,26 @@ def catalog_entry(client):
         university = db.execute(
             select(CatalogUniversity).where(CatalogUniversity.slug == "mcgill")
         ).scalar_one()
-        entry = CatalogProfessor(
-            university_id=university.id,
-            name="Test Supervisor",
-            email="test.supervisor@uni.test",
-            research_focus="computational neuroimaging",
-            source_url="https://uni.test/faculty",
-            scraped_at=datetime.now(timezone.utc),
-            is_published=True,
-        )
-        db.add(entry)
-        db.flush()
+        entry = db.execute(
+            select(CatalogProfessor).where(
+                CatalogProfessor.university_id == university.id,
+                CatalogProfessor.name == "Test Supervisor",
+            )
+        ).scalar_one_or_none()
+        if entry is None:
+            entry = CatalogProfessor(
+                university_id=university.id,
+                name="Test Supervisor",
+                email="test.supervisor@uni.test",
+                research_focus="computational neuroimaging",
+                source_url="https://uni.test/faculty",
+                scraped_at=datetime.now(timezone.utc),
+            )
+            db.add(entry)
+            db.flush()
+        # Reset the visibility flags a previous test may have flipped.
+        entry.is_published = True
+        entry.is_removed = False
         return entry.id
 
 

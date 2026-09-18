@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
-from ..deps import RequirePlan, render, require_verified, set_flash, subscription_context
+from ..deps import render, require_plan, require_verified, set_flash, subscription_context
 from ..models import Contact, Conversation, User
 from ..services import ai as ai_service
 from ..services.audit import Action, log_activity
@@ -17,7 +17,7 @@ from ..services.billing import user_has_feature
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
-require_ai = RequirePlan("ai")
+require_ai = require_plan("ai")
 
 
 def _conversations(db: Session, user: User) -> list[Conversation]:

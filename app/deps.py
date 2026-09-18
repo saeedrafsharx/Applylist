@@ -151,29 +151,36 @@ def require_admin(request: Request, user: User = Depends(require_user)) -> User:
     return user
 
 
-class RequirePlan:
+def require_plan(feature: str):
     """
-    Dependency factory gating a paid feature.
+    Build a dependency gating a paid feature.
 
-    Usage: `user: User = Depends(RequirePlan("ai"))`
+    Usage: `user: User = Depends(require_plan("ai"))`
+
+    This returns a closure rather than a callable class on purpose. This module
+    uses `from __future__ import annotations`, so every annotation is a string;
+    FastAPI resolves those against the dependency's `__globals__`, which a class
+    *instance* does not have. A callable class silently loses its annotations and
+    FastAPI reinterprets `request: Request` as a required query parameter,
+    answering every call with a 422. A nested function carries the module
+    globals, so the annotations resolve.
     """
 
-    def __init__(self, feature: str):
-        self.feature = feature
-
-    def __call__(
-        self,
+    def dependency(
         request: Request,
         user: User = Depends(require_verified),
         db: Session = Depends(get_db),
     ) -> User:
-        if not user_has_feature(db, user, self.feature):
+        if not user_has_feature(db, user, feature):
             raise AppRedirect(
-                f"/pricing?feature={self.feature}",
+                f"/pricing?feature={feature}",
                 "That feature is part of a paid plan.",
                 "info",
             )
         return user
+
+    dependency.__name__ = f"require_plan_{feature}"
+    return dependency
 
 
 def subscription_context(db: Session, user: Optional[User]) -> dict:

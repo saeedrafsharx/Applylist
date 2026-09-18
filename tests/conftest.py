@@ -81,6 +81,8 @@ def user_factory(engine):
     """Create verified users directly, skipping the email round-trip."""
     from datetime import datetime, timezone
 
+    from sqlalchemy import select
+
     from app import db as db_module
     from app.models import User
     from app.services.security import get_password_hash
@@ -92,6 +94,13 @@ def user_factory(engine):
         counter["n"] += 1
         username = username or f"user{counter['n']}"
         with db_module.session_scope() as session:
+            # The database is session-scoped and this fixture commits, so a
+            # named user requested by two tests must be reused, not re-inserted.
+            existing = session.execute(
+                select(User).where(User.username == username)
+            ).scalar_one_or_none()
+            if existing is not None:
+                return existing
             user = User(
                 username=username,
                 email=kwargs.pop("email", f"{username}@example.com"),

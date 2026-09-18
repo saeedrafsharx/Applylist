@@ -46,6 +46,19 @@ def clean(text: Optional[str]) -> str:
     return _WS.sub(" ", (text or "")).strip()
 
 
+def node_text(node: Optional[Node]) -> str:
+    """
+    Flattened text of a node.
+
+    selectolax joins child nodes with no separator by default, which silently
+    welds adjacent elements together ("Danilo Bzdok" + "Associate Professor"
+    becoming one word). Always read text through here.
+    """
+    if node is None:
+        return ""
+    return clean(node.text(separator=" ", strip=True))
+
+
 def looks_like_person(name: str) -> bool:
     """Reject nav labels, headings, and department names posing as people."""
     name = clean(name)
@@ -81,19 +94,31 @@ def extract_email(node: Node, page_text: str = "") -> Optional[str]:
         candidate = href[7:].split("?", 1)[0].strip()
         if EMAIL_RE.fullmatch(candidate) and is_personal_email(candidate):
             return candidate.lower()
-    match = EMAIL_RE.search(node.text() or page_text)
+    match = EMAIL_RE.search(node_text(node) or page_text)
     if match and is_personal_email(match.group(0)):
         return match.group(0).lower()
     return None
 
 
-def extract_title(text: str) -> Optional[str]:
-    lowered = text.lower()
-    for word in TITLE_WORDS:
-        if word in lowered:
-            for line in text.splitlines():
-                if word in line.lower() and len(line.strip()) < 120:
-                    return clean(line)
+def extract_title(block: Optional[Node]) -> Optional[str]:
+    """
+    The person's academic title, read from whichever child element holds it.
+
+    Scanning individual elements rather than the block's flattened text keeps
+    the heading out of the result - the name and the title are siblings, and a
+    text-level match would return both stuck together.
+    """
+    if block is None:
+        return None
+    for node in block.css("*"):
+        if node.child is not None and node.child.tag != "-text":
+            continue  # only leaf-ish nodes, so we don't re-match a whole card
+        candidate = node_text(node)
+        if not candidate or len(candidate) > 120:
+            continue
+        lowered = candidate.lower()
+        if any(word in lowered for word in TITLE_WORDS):
+            return candidate
     return None
 
 
@@ -131,7 +156,7 @@ def parse_mailto_directory(html: str, source_url: str) -> list[ParsedProfessor]:
             if block.parent is None:
                 break
             block = block.parent
-            text = clean(block.text())
+            text = node_text(block)
             if len(text) > 40:
                 break
 
@@ -139,16 +164,18 @@ def parse_mailto_directory(html: str, source_url: str) -> list[ParsedProfessor]:
         if not name:
             continue
 
-        block_text = clean(block.text())
-        profile = _profile_link_near(block, source_url, email)
+        block_text = node_text(block)
+        title = extract_title(block)
+        # "Email", "Profile", "Website"... are link labels, not research interests.
+        link_labels = [node_text(a) for a in block.css("a")]
 
         record = ParsedProfessor(
             name=name,
             source_url=source_url,
             email=email,
-            title=extract_title(block.text() or ""),
-            research_focus=_focus_from(block_text, name, email),
-            profile_url=profile,
+            title=title,
+            research_focus=_focus_from(block_text, name, email, title, link_labels),
+            profile_url=_profile_link_near(block, source_url, email),
         )
         found.setdefault(record.key(), record)
 
@@ -158,14 +185,14 @@ def parse_mailto_directory(html: str, source_url: str) -> list[ParsedProfessor]:
 def _name_near(link: Node, block: Node, email: str) -> Optional[str]:
     """Find the person's name around a mailto link."""
     # 1. The link text itself, when it isn't just the address.
-    link_text = normalize_name(link.text())
+    link_text = normalize_name(node_text(link))
     if link_text and "@" not in link_text and looks_like_person(link_text):
         return link_text
 
     # 2. A heading inside the block.
     for sel in ("h1", "h2", "h3", "h4", "h5", "strong", "b", ".name", "[class*='name']"):
         for node in block.css(sel):
-            candidate = normalize_name(node.text())
+            candidate = normalize_name(node_text(node))
             if looks_like_person(candidate):
                 return candidate
 
@@ -174,7 +201,7 @@ def _name_near(link: Node, block: Node, email: str) -> Optional[str]:
         href = anchor.attributes.get("href") or ""
         if href.startswith("mailto:"):
             continue
-        candidate = normalize_name(anchor.text())
+        candidate = normalize_name(node_text(anchor))
         if looks_like_person(candidate):
             return candidate
 
@@ -198,11 +225,23 @@ def _profile_link_near(block: Node, source_url: str, email: str) -> Optional[str
     return None
 
 
-def _focus_from(block_text: str, name: str, email: str) -> Optional[str]:
-    """Whatever prose is left in the card after removing the name and address."""
+def _focus_from(
+    block_text: str,
+    name: str,
+    email: str,
+    title: Optional[str] = None,
+    link_labels: Optional[list[str]] = None,
+) -> Optional[str]:
+    """Whatever prose is left in the card once the chrome is removed."""
     text = block_text.replace(email, " ").replace(name, " ")
+    if title:
+        text = text.replace(title, " ")
+    for label in sorted(link_labels or [], key=len, reverse=True):
+        if label and len(label) <= 40:
+            text = text.replace(label, " ")
     text = clean(text)
     text = re.sub(r"^[\s|·•\-–—,:]+", "", text)
+    text = re.sub(r"[\s|·•,:]+$", "", text)
     if len(text) < 12:
         return None
     return text[:600]
@@ -223,7 +262,7 @@ def parse_profile_links(html: str, source_url: str) -> list[ParsedProfessor]:
         href = (anchor.attributes.get("href") or "").strip()
         if not href or href.startswith(("mailto:", "tel:", "#", "javascript:")):
             continue
-        name = normalize_name(anchor.text())
+        name = normalize_name(node_text(anchor))
         if not looks_like_person(name):
             continue
         absolute = urljoin(source_url, href)
@@ -247,13 +286,13 @@ def enrich_from_profile(record: ParsedProfessor, html: str) -> ParsedProfessor:
 
     if not record.email:
         record.email = extract_email(body)
-    text = clean(body.text())
+    text = node_text(body)
     if not record.title:
-        record.title = extract_title(body.text() or "")
+        record.title = extract_title(body)
     if not record.research_focus:
         for sel in ("[class*='research']", "[id*='research']", "p"):
             for node in body.css(sel):
-                candidate = clean(node.text())
+                candidate = node_text(node)
                 if 40 <= len(candidate) <= 600:
                     record.research_focus = candidate
                     break
