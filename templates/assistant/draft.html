@@ -1,68 +1,70 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Draft an email · Assistant{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
-  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7">
-    <h1 class="text-2xl font-semibold grad-text mb-1">Draft an email</h1>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
-      Pick a contact you're already tracking. The draft is built from their research focus and your notes.
-    </p>
-
-    {% if not contacts %}
-      <div class="p-8 text-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-        <div class="text-3xl mb-2">📇</div>
-        <p class="font-medium">You have no contacts yet</p>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Add one first, then come back to draft an email.</p>
-        <a href="/professors" class="inline-block mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-medium">Add a contact</a>
-      </div>
-    {% else %}
-    <form method="post" action="/assistant/draft" class="grid gap-4">
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">Recipient</span>
-        <select name="contact_id" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          {% for c in contacts %}
-            <option value="{{ c.id }}" {% if c.id == selected_id %}selected{% endif %}>
-              {{ c.name }} — {{ c.university }}{% if c.email_sent %} (already emailed){% endif %}
-            </option>
-          {% endfor %}
-        </select>
-      </label>
-
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">Purpose</span>
-        <select name="purpose" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          <option value="first_contact">First contact — introduce myself</option>
-          <option value="follow_up">Follow-up — no reply yet</option>
-          <option value="thank_you">Thank you — they replied</option>
-          <option value="application_update">Update — I've submitted my application</option>
-        </select>
-      </label>
-
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">Tone</span>
-        <select name="tone" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          <option value="professional and warm">Professional and warm</option>
-          <option value="formal and concise">Formal and concise</option>
-          <option value="enthusiastic but grounded">Enthusiastic but grounded</option>
-        </select>
-      </label>
-
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">About you <span class="font-normal text-slate-400">(optional, but it makes the draft much better)</span></span>
-        <textarea name="extra" rows="4"
-                  placeholder="e.g. MSc in Biomedical Engineering, Sharif University. Thesis on EEG source localization. Applying for Fall 2027. Python, MNE, PyTorch."
-                  class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-violet-400 focus:outline-none"></textarea>
-        <span class="text-xs text-slate-500 dark:text-slate-400">
-          Anything you leave out becomes a [placeholder] — it won't be invented.
-        </span>
-      </label>
-
-      <button class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium shadow hover:opacity-95">
-        Write the draft
-      </button>
-      <p class="text-xs text-slate-400 text-center">Uses 1 of your {{ quota - used }} remaining messages this month.</p>
-    </form>
-    {% endif %}
+  <a href="/assistant" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Assistant</a>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Draft an email</h1>
+      <p class="page-subtitle">Pick a contact you're already tracking. The draft is built from their research focus and your notes.</p>
+    </div>
   </div>
+
+  {% if not contacts %}
+    <div class="card">
+      {% call ui.empty('users', 'You have no contacts yet', 'Add one first, then come back to draft an email.') %}
+        <a href="/professors" class="btn btn-primary btn-sm mt-4">Add a contact</a>
+      {% endcall %}
+    </div>
+  {% else %}
+  <section class="card">
+    <form method="post" action="/assistant/draft">
+      <div class="card-body grid gap-4">
+        <label class="field">
+          <span class="label">Recipient</span>
+          <select name="contact_id" required class="input">
+            {% for c in contacts %}
+              <option value="{{ c.id }}" {% if c.id == selected_id %}selected{% endif %}>
+                {{ c.name }} — {{ c.university }}{% if c.email_sent %} (already emailed){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="field">
+            <span class="label">Purpose</span>
+            <select name="purpose" class="input">
+              <option value="first_contact">First contact — introduce myself</option>
+              <option value="follow_up">Follow-up — no reply yet</option>
+              <option value="thank_you">Thank you — they replied</option>
+              <option value="application_update">Update — I've submitted my application</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Tone</span>
+            <select name="tone" class="input">
+              <option value="professional and warm">Professional and warm</option>
+              <option value="formal and concise">Formal and concise</option>
+              <option value="enthusiastic but grounded">Enthusiastic but grounded</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="label">About you <span class="label-optional">(optional, but it makes the draft much better)</span></span>
+          <textarea name="extra" rows="4" class="input"
+                    placeholder="e.g. MSc in Biomedical Engineering, Sharif University. Thesis on EEG source localization. Applying for Fall 2027. Python, MNE, PyTorch."></textarea>
+          <span class="hint">Anything you leave out becomes a [placeholder] — it won't be invented.</span>
+        </label>
+      </div>
+      <div class="card-footer flex flex-wrap items-center justify-between gap-3">
+        <span class="text-xs text-muted">Uses 1 of your {{ quota - used }} remaining messages this month.</span>
+        <button class="btn btn-primary">{{ ui.icon('sparkles', 15) }}Write the draft</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

@@ -41,6 +41,9 @@ class PoliteFetcher:
     respect_robots: bool = field(default_factory=lambda: settings.scraper_respect_robots)
 
     pages_fetched: int = 0
+    # Where the last `get` actually landed after redirects. Links on that page
+    # are relative to this, not to the URL that was requested.
+    last_url: Optional[str] = None
     _robots: dict[str, Optional[robotparser.RobotFileParser]] = field(default_factory=dict)
     _last_hit: dict[str, float] = field(default_factory=dict)
     _client: Optional[httpx.Client] = None
@@ -51,8 +54,8 @@ class PoliteFetcher:
             follow_redirects=True,
             headers={
                 "User-Agent": self.user_agent,
-                "Accept": "text/html,application/xhtml+xml",
-                "Accept-Language": "en",
+                "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
+                "Accept-Language": "en;q=1.0, *;q=0.5",
             },
         )
         return self
@@ -134,6 +137,10 @@ class PoliteFetcher:
             raise FetchError(f"Could not fetch {url}: {exc}") from exc
 
         self.pages_fetched += 1
+        self.last_url = str(resp.url)
+        if urlparse(self.last_url).netloc != urlparse(url).netloc and not self.can_fetch(self.last_url):
+            # Redirected onto a host whose own robots.txt says no: discard it.
+            raise RobotsDisallowed(f"{url} redirects to {self.last_url}, which robots.txt disallows")
         if resp.status_code >= 400:
             raise FetchError(f"{url} returned HTTP {resp.status_code}")
         ctype = resp.headers.get("content-type", "")

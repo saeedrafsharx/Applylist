@@ -1,49 +1,57 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Job titles · Admin{% endblock %}
 {% block content %}
 {% include "admin/_nav.html" %}
 
-<div class="grid gap-5">
-  <form method="post" action="/admin/jobs" class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 grid sm:grid-cols-4 gap-3">
-    <div class="sm:col-span-4 font-semibold">Add a role title</div>
-    <input name="title" required placeholder="Title, e.g. Research Assistant" class="sm:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    <input name="field" placeholder="Field, e.g. Neuroscience" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    <input name="level" placeholder="Level, e.g. Graduate" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    <input name="description" placeholder="What the role involves" class="sm:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    <input name="typical_requirements" placeholder="Typical requirements" class="sm:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    <button class="sm:col-span-4 justify-self-start px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-sm font-medium">Add title</button>
+<div class="grid grid-cols-1 gap-5">
+  <form method="post" action="/admin/jobs" class="card">
+    <div class="card-header"><h2 class="card-title">Add a role title</h2></div>
+    <div class="card-body grid sm:grid-cols-4 gap-3">
+      <label class="field sm:col-span-2"><span class="label">Title</span>
+        <input name="title" required placeholder="e.g. Research Assistant" class="input" /></label>
+      <label class="field"><span class="label">Field</span>
+        <input name="field" placeholder="e.g. Neuroscience" class="input" /></label>
+      <label class="field"><span class="label">Level</span>
+        <input name="level" placeholder="e.g. Graduate" class="input" /></label>
+      <label class="field sm:col-span-2"><span class="label">Description</span>
+        <input name="description" placeholder="What the role involves" class="input" /></label>
+      <label class="field sm:col-span-2"><span class="label">Typical requirements</span>
+        <input name="typical_requirements" class="input" /></label>
+    </div>
+    <div class="card-footer"><button class="btn btn-primary btn-sm">{{ ui.icon('plus', 14) }}Add title</button></div>
   </form>
 
-  <form method="get" action="/admin/jobs" class="flex gap-2 items-end">
-    <input name="q" value="{{ q }}" placeholder="Search titles" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-64" />
-    <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Search</button>
-    <span class="ml-auto text-sm text-slate-500 dark:text-slate-400">{{ rows|length }} titles</span>
-  </form>
-
-  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden overflow-x-auto">
-    <table class="min-w-full text-sm">
-      <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
-        <th class="px-4 py-3">Title</th><th class="px-4 py-3">Field</th><th class="px-4 py-3">Level</th>
-        <th class="px-4 py-3">Description</th><th class="px-4 py-3"></th>
-      </tr></thead>
-      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-        {% for j in rows %}
-        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-          <td class="px-4 py-2.5 font-medium">{{ j.title }}</td>
-          <td class="px-4 py-2.5">{{ j.field or '—' }}</td>
-          <td class="px-4 py-2.5">{{ j.level or '—' }}</td>
-          <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400 max-w-md truncate">{{ j.description or '' }}</td>
-          <td class="px-4 py-2.5 text-right">
-            <form method="post" action="/admin/jobs/{{ j.id }}/delete" onsubmit="return confirm('Delete this title?')">
-              <button class="text-xs text-rose-600 dark:text-rose-400 hover:underline">Delete</button>
-            </form>
-          </td>
-        </tr>
-        {% else %}
-          <tr><td colspan="5" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No titles yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <section class="card">
+    <div class="card-header">
+      <form method="get" action="/admin/jobs" class="toolbar">
+        <input name="q" value="{{ q }}" placeholder="Search titles" class="input input-sm w-64" aria-label="Search" />
+        <button class="btn btn-secondary btn-sm">Search</button>
+      </form>
+      <span class="text-xs text-muted">{{ rows|length }} titles</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Title</th><th>Field</th><th>Level</th><th>Description</th><th></th></tr></thead>
+        <tbody>
+          {% for j in rows %}
+          <tr>
+            <td class="font-medium">{{ j.title }}</td>
+            <td>{{ j.field or '—' }}</td>
+            <td>{{ j.level or '—' }}</td>
+            <td class="cell-muted max-w-md truncate">{{ j.description or '' }}</td>
+            <td class="text-right">
+              <form method="post" action="/admin/jobs/{{ j.id }}/delete" onsubmit="return confirm('Delete this title?')">
+                <button class="icon-btn hover:text-danger" title="Delete" aria-label="Delete">{{ ui.icon('trash', 15) }}</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+            <tr><td colspan="5">{{ ui.empty('briefcase', 'No titles yet.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 {% endblock %}

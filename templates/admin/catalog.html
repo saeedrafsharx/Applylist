@@ -1,130 +1,103 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Catalog · Admin{% endblock %}
 {% block content %}
 {% include "admin/_nav.html" %}
 
-<div class="grid gap-4">
-  {% if open_takedowns %}
-    <a href="/admin/takedowns" class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-sm font-medium">
-      {{ open_takedowns }} takedown request{{ '' if open_takedowns == 1 else 's' }} waiting for review →
-    </a>
-  {% endif %}
+{% if open_takedowns %}
+  <a href="/admin/takedowns" class="alert alert-warning mb-4">
+    {{ ui.icon('alert', 16) }}<span>{{ open_takedowns }} takedown request{{ '' if open_takedowns == 1 else 's' }} waiting for review</span>
+  </a>
+{% endif %}
 
-  <form method="get" action="/admin/catalog" class="flex flex-wrap gap-2 items-end">
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Search</span>
-      <input name="q" value="{{ q }}" placeholder="name, email, research" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-56" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">University</span>
-      <select name="university" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-        <option value="">All</option>
-        {% for u in universities %}<option value="{{ u.slug }}" {% if u.slug == university %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">State</span>
-      <select name="state" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-        <option value="">All</option>
-        {% for v, l in [('unpublished','Unpublished'), ('removed','Taken down'), ('no_email','Missing email')] %}
-          <option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Filter</button>
-    {% if q or university or state %}<a href="/admin/catalog" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">Clear</a>{% endif %}
-    <span class="ml-auto text-sm text-slate-500 dark:text-slate-400">{{ "{:,}".format(total) }} entries</span>
-  </form>
-
-  <div class="grid gap-3">
-    {% for p in rows %}
-    <details class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden
-                    {% if p.is_removed %}opacity-60{% endif %}">
-      <summary class="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-        <span class="font-medium">{{ p.name }}</span>
-        <span class="text-sm text-slate-500 dark:text-slate-400">{{ p.university.name if p.university else '—' }}</span>
-        {% if p.email %}<span class="font-mono text-xs text-slate-400">{{ p.email }}</span>
-        {% else %}<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200">no email</span>{% endif %}
-        <span class="ml-auto flex gap-1">
-          {% if p.is_removed %}<span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200">taken down</span>
-          {% elif not p.is_published %}<span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700">hidden</span>
-          {% else %}<span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200">live</span>{% endif %}
-          {% if p.verified_at %}<span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200">verified</span>{% endif %}
-        </span>
-      </summary>
-
-      <div class="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 pt-4 grid gap-4">
-        <div class="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-4">
-          <span>Source: <a href="{{ p.source_url }}" target="_blank" rel="noopener" class="underline">{{ p.source_url[:70] }}</a></span>
-          {% if p.source_key %}<span>Parser run: <code class="font-mono">{{ p.source_key }}</code></span>{% endif %}
-          {% if p.scraped_at %}<span>Last read {{ p.scraped_at | dt }}</span>{% endif %}
-          {% if p.removed_reason %}<span class="text-rose-600 dark:text-rose-400">Removed: {{ p.removed_reason }}</span>{% endif %}
-        </div>
-
-        <form method="post" action="/admin/catalog/{{ p.id }}" class="grid sm:grid-cols-2 gap-3">
-          <label class="grid gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Name</span>
-            <input name="name" value="{{ p.name }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Email</span>
-            <input name="email" type="email" value="{{ p.email or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Title</span>
-            <input name="title" value="{{ p.title or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Department</span>
-            <input name="department" value="{{ p.department or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-          </label>
-          <label class="grid gap-1 sm:col-span-2">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Profile URL</span>
-            <input name="profile_url" value="{{ p.profile_url or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-          </label>
-          <label class="grid gap-1 sm:col-span-2">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Research focus</span>
-            <textarea name="research_focus" rows="3" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">{{ p.research_focus or '' }}</textarea>
-          </label>
-          <div class="sm:col-span-2 flex flex-wrap gap-5 items-center">
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" name="is_published" {% if p.is_published %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600" />
-              <span class="text-sm">Published</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" name="verified" {% if p.verified_at %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-sky-600" />
-              <span class="text-sm">Verified by hand</span>
-            </label>
-            <button class="ml-auto px-4 py-2 rounded-xl bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-sm font-medium">Save</button>
-          </div>
-        </form>
-
-        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          {% if p.is_removed %}
-            <form method="post" action="/admin/catalog/{{ p.id }}/restore">
-              <button class="px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm">Restore entry</button>
-            </form>
-          {% else %}
-            <form method="post" action="/admin/catalog/{{ p.id }}/remove" class="flex gap-2 items-center"
-                  onsubmit="return confirm('Take down {{ p.name }}? A later scrape will not bring them back.')">
-              <input name="reason" placeholder="Reason (optional)" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm" />
-              <button class="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm">Take down</button>
-            </form>
-          {% endif %}
-        </div>
-      </div>
-    </details>
-    {% else %}
-      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center text-slate-500 dark:text-slate-400">
-        <div class="text-4xl mb-3">🗂️</div>
-        <p>No catalog entries yet.</p>
-        <a href="/admin/scraper" class="inline-block mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white text-sm font-medium">Run a scrape</a>
-      </div>
+<form method="get" action="/admin/catalog" class="toolbar mb-4">
+  <input name="q" value="{{ q }}" placeholder="Name, email, research" class="input input-sm w-56" aria-label="Search" />
+  <select name="university" class="input input-sm w-auto" aria-label="University">
+    <option value="">All universities</option>
+    {% for u in universities %}<option value="{{ u.slug }}" {% if u.slug == university %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
+  </select>
+  <select name="state" class="input input-sm w-auto" aria-label="State">
+    <option value="">Any state</option>
+    {% for v, l in [('unpublished','Unpublished'), ('removed','Taken down'), ('no_email','Missing email')] %}
+      <option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>
     {% endfor %}
-  </div>
+  </select>
+  <button class="btn btn-secondary btn-sm">Filter</button>
+  {% if q or university or state %}<a href="/admin/catalog" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+  <span class="ml-auto text-xs text-muted self-center">{{ "{:,}".format(total) }} entries</span>
+</form>
 
-  {% with base='/admin/catalog', params='q=' ~ q ~ '&university=' ~ university ~ '&state=' ~ state ~ '&' %}
-    {% include "partials/pagination.html" %}
-  {% endwith %}
+{% if rows %}
+<div class="card divide">
+  {% for p in rows %}
+  <details class="group {% if p.is_removed %}opacity-60{% endif %}">
+    <summary class="px-5 py-3 cursor-pointer flex flex-wrap items-center gap-x-3 gap-y-1 hover:bg-subtle/50 list-none">
+      <span class="font-medium">{{ p.name }}</span>
+      <span class="text-muted">{{ p.university.name if p.university else '—' }}</span>
+      {% if p.email %}<span class="mono text-xs text-faint">{{ p.email }}</span>
+      {% else %}<span class="badge badge-warning">no email</span>{% endif %}
+      <span class="ml-auto flex gap-1">
+        {% if p.is_removed %}<span class="badge badge-danger">taken down</span>
+        {% elif not p.is_published %}<span class="badge">hidden</span>
+        {% else %}<span class="badge badge-success">live</span>{% endif %}
+        {% if p.verified_at %}<span class="badge badge-info">verified</span>{% endif %}
+      </span>
+    </summary>
+
+    <div class="px-5 pb-5 pt-4 border-t border-line grid gap-4 bg-subtle/30">
+      <div class="text-xs text-muted flex flex-wrap gap-x-4 gap-y-1">
+        <span>Source: <a href="{{ p.source_url }}" target="_blank" rel="noopener" class="link">{{ p.source_url[:70] }}</a></span>
+        {% if p.source_key %}<span>Parser run: <code>{{ p.source_key }}</code></span>{% endif %}
+        {% if p.scraped_at %}<span>Last read {{ p.scraped_at | dt }}</span>{% endif %}
+        {% if p.removed_reason %}<span class="text-danger">Removed: {{ p.removed_reason }}</span>{% endif %}
+      </div>
+
+      <form method="post" action="/admin/catalog/{{ p.id }}" class="grid sm:grid-cols-2 gap-3">
+        <label class="field"><span class="label">Name</span>
+          <input name="name" value="{{ p.name }}" required class="input" /></label>
+        <label class="field"><span class="label">Email</span>
+          <input name="email" type="email" value="{{ p.email or '' }}" class="input" /></label>
+        <label class="field"><span class="label">Title</span>
+          <input name="title" value="{{ p.title or '' }}" class="input" /></label>
+        <label class="field"><span class="label">Department</span>
+          <input name="department" value="{{ p.department or '' }}" class="input" /></label>
+        <label class="field sm:col-span-2"><span class="label">Profile URL</span>
+          <input name="profile_url" value="{{ p.profile_url or '' }}" class="input" /></label>
+        <label class="field sm:col-span-2"><span class="label">Research focus</span>
+          <textarea name="research_focus" rows="3" class="input">{{ p.research_focus or '' }}</textarea></label>
+        <div class="sm:col-span-2 flex flex-wrap gap-5 items-center">
+          <label class="check"><input type="checkbox" name="is_published" class="checkbox" {% if p.is_published %}checked{% endif %} /><span>Published</span></label>
+          <label class="check"><input type="checkbox" name="verified" class="checkbox" {% if p.verified_at %}checked{% endif %} /><span>Verified by hand</span></label>
+          <button class="btn btn-primary btn-sm ml-auto">Save</button>
+        </div>
+      </form>
+
+      <div class="flex gap-2 pt-3 border-t border-line">
+        {% if p.is_removed %}
+          <form method="post" action="/admin/catalog/{{ p.id }}/restore">
+            <button class="btn btn-secondary btn-sm">{{ ui.icon('refresh', 14) }}Restore entry</button>
+          </form>
+        {% else %}
+          <form method="post" action="/admin/catalog/{{ p.id }}/remove" class="toolbar"
+                onsubmit="return confirm('Take down {{ p.name }}? A later scrape will not bring them back.')">
+            <input name="reason" placeholder="Reason (optional)" class="input input-sm w-64" />
+            <button class="btn btn-danger btn-sm">Take down</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </details>
+  {% endfor %}
 </div>
+{% else %}
+  <div class="card">
+    {% call ui.empty('database', 'No catalog entries yet') %}
+      <a href="/admin/scraper" class="btn btn-primary btn-sm mt-4">Run a scrape</a>
+    {% endcall %}
+  </div>
+{% endif %}
+
+{% with base='/admin/catalog', params='q=' ~ q ~ '&university=' ~ university ~ '&state=' ~ state ~ '&' %}
+  {% include "partials/pagination.html" %}
+{% endwith %}
 {% endblock %}

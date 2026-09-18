@@ -1,140 +1,131 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Positions · ApplyList{% endblock %}
 {% block content %}
 {% set badges = {
-  'interested': 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
-  'applied':    'bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200',
-  'interview':  'bg-violet-100 dark:bg-violet-950/60 text-violet-800 dark:text-violet-200',
-  'offer':      'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200',
-  'rejected':   'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200',
-  'archived':   'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+  'interested': '', 'applied': 'badge-info', 'interview': 'badge-accent',
+  'offer': 'badge-success', 'rejected': 'badge-danger', 'archived': ''
 } %}
-<div class="grid gap-6">
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Positions</h1>
+    <p class="page-subtitle">PhD calls, fellowships and RA posts, with their status and deadlines.</p>
+  </div>
+</div>
 
+<div class="grid grid-cols-1 gap-6">
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    {% for label, value, accent in [
-        ('Positions', stats.total, ''),
-        ('Applied or further', stats.applied, 'text-sky-600 dark:text-sky-400'),
-        ('Due within 14 days', stats.due_soon, 'text-amber-600 dark:text-amber-400'),
-        ('Deadline passed', stats.overdue, 'text-rose-600 dark:text-rose-400')] %}
-      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
-        <div class="mt-1 text-2xl font-semibold {{ accent }}">{{ value }}</div>
-      </div>
-    {% endfor %}
+    {{ ui.stat('Positions', stats.total) }}
+    {{ ui.stat('Applied or further', stats.applied, cls='text-accent') }}
+    {{ ui.stat('Due within 14 days', stats.due_soon, cls='text-warning') }}
+    {{ ui.stat('Deadline passed', stats.overdue, cls='text-danger') }}
   </div>
 
-  <section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-5">
-    <h2 class="text-lg font-semibold mb-4 grad-text">Add a position</h2>
-    <form action="/positions/add" method="post" class="grid md:grid-cols-6 gap-3">
-      <input name="field" required placeholder="e.g. PhD Neuroimaging at McGill" class="md:col-span-3 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
-      <input name="link" required placeholder="Announcement or application URL" class="md:col-span-3 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
-      <input name="category" list="pcats" placeholder="Category" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+  <section class="card">
+    <div class="card-header"><h2 class="card-title">Add a position</h2></div>
+    <form action="/positions/add" method="post" class="card-body grid md:grid-cols-6 gap-3">
+      <label class="field md:col-span-3"><span class="label">Field / title</span>
+        <input name="field" required placeholder="e.g. PhD Neuroimaging at McGill" class="input" /></label>
+      <label class="field md:col-span-3"><span class="label">Link</span>
+        <input name="link" required placeholder="Announcement or application URL" class="input" /></label>
+      <label class="field md:col-span-2"><span class="label">Category</span>
+        <input name="category" list="pcats" placeholder="General" class="input" /></label>
       <datalist id="pcats">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
-      <select name="status" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-        {% for s in statuses %}<option value="{{ s }}">{{ s|capitalize }}</option>{% endfor %}
-      </select>
-      <label class="md:col-span-2 grid gap-1">
-        <input type="date" name="deadline" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" title="Deadline" />
-      </label>
-      <textarea name="notes" rows="2" placeholder="Notes (optional)" class="md:col-span-6 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"></textarea>
+      <label class="field md:col-span-2"><span class="label">Status</span>
+        <select name="status" class="input">
+          {% for s in statuses %}<option value="{{ s }}">{{ s|capitalize }}</option>{% endfor %}
+        </select></label>
+      <label class="field md:col-span-2"><span class="label">Deadline</span>
+        <input type="date" name="deadline" class="input" /></label>
+      <label class="field md:col-span-6"><span class="label">Notes <span class="label-optional">(optional)</span></span>
+        <textarea name="notes" rows="2" class="input"></textarea></label>
       <div class="md:col-span-6">
-        <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white font-medium shadow hover:opacity-95">Save position</button>
+        <button class="btn btn-primary">{{ ui.icon('plus', 15) }}Save position</button>
       </div>
     </form>
   </section>
 
-  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-    <form method="get" action="/positions" class="flex flex-wrap gap-2 items-end">
-      <label class="grid gap-1">
-        <span class="text-xs text-slate-500 dark:text-slate-400">Search</span>
-        <input name="q" value="{{ q }}" placeholder="field, link, notes…" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-56" />
-      </label>
-      <label class="grid gap-1">
-        <span class="text-xs text-slate-500 dark:text-slate-400">Status</span>
-        <select name="status" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          <option value="">All</option>
+  <section class="card">
+    <div class="card-header">
+      <form method="get" action="/positions" class="toolbar">
+        <div class="relative">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">{{ ui.icon('search', 15) }}</span>
+          <input name="q" value="{{ q }}" placeholder="Search field, link, notes…" class="input input-sm w-64" style="padding-left: 2rem" aria-label="Search" />
+        </div>
+        <select name="status" class="input input-sm w-auto" aria-label="Status">
+          <option value="">All statuses</option>
           {% for s in statuses %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
         </select>
-      </label>
-      <label class="grid gap-1">
-        <span class="text-xs text-slate-500 dark:text-slate-400">Category</span>
-        <select name="category" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          <option value="">All</option>
+        <select name="category" class="input input-sm w-auto" aria-label="Category">
+          <option value="">All categories</option>
           {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}
         </select>
-      </label>
-      <label class="grid gap-1">
-        <span class="text-xs text-slate-500 dark:text-slate-400">Sort</span>
-        <select name="sort" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-          {% for value, label in [('field','Field'), ('deadline','Deadline'), ('status','Status'), ('category','Category'), ('recent','Recently added')] %}
+        <select name="sort" class="input input-sm w-auto" aria-label="Sort">
+          {% for value, label in [('field','Sort: Field'), ('deadline','Sort: Deadline'), ('status','Sort: Status'), ('category','Sort: Category'), ('recent','Sort: Recently added')] %}
             <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-      </label>
-      <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Apply</button>
-      {% if q or category or status %}<a href="/positions" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">Clear</a>{% endif %}
-    </form>
-  </section>
-
-  <section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow overflow-hidden">
-    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
-      <h2 class="text-lg font-semibold grad-text">Positions</h2>
+        <button class="btn btn-secondary btn-sm">Apply</button>
+        {% if q or category or status %}<a href="/positions" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+      </form>
     </div>
 
     {% if not positions %}
-      <div class="p-12 text-center">
-        <div class="text-4xl mb-3">🎯</div>
-        <p class="font-medium">{% if q or category or status %}Nothing matches that filter.{% else %}No positions yet.{% endif %}</p>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Add PhD calls, fellowships and RA posts above to track their deadlines.</p>
-      </div>
+      {% if q or category or status %}
+        {% call ui.empty('search', 'Nothing matches that filter.') %}
+          <a href="/positions" class="btn btn-secondary btn-sm mt-4">Clear filters</a>
+        {% endcall %}
+      {% else %}
+        {{ ui.empty('briefcase', 'No positions yet', 'Add PhD calls, fellowships and RA posts above to track their deadlines.') }}
+      {% endif %}
     {% else %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
+    <div class="table-wrap">
+      <table class="table">
         <thead>
-          <tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
-            <th class="px-4 py-3">Field</th>
-            <th class="px-4 py-3">Category</th>
-            <th class="px-4 py-3">Status</th>
-            <th class="px-4 py-3">Deadline</th>
-            <th class="px-4 py-3">Link</th>
-            <th class="px-4 py-3 text-right">Actions</th>
+          <tr>
+            <th>Field</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Link</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {% for p in positions %}
           {% set overdue = p.deadline and p.deadline < today and p.status == 'interested' %}
           {% set soon = p.deadline and not overdue and (p.deadline - today).days <= 14 and (p.deadline - today).days >= 0 %}
-          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-            <td class="px-4 py-3 font-medium">
-              {{ p.field }}
-              {% if p.notes %}<div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-md truncate" title="{{ p.notes }}">{{ p.notes }}</div>{% endif %}
+          <tr>
+            <td>
+              <div class="font-medium">{{ p.field }}</div>
+              {% if p.notes %}<div class="text-xs text-muted mt-0.5 max-w-md truncate" title="{{ p.notes }}">{{ p.notes }}</div>{% endif %}
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs">{{ p.category or 'General' }}</span></td>
-            <td class="px-4 py-3">
+            <td><span class="badge">{{ p.category or 'General' }}</span></td>
+            <td>
               <form action="/positions/status/{{ p.id }}" method="post">
-                <select name="status" onchange="this.form.submit()" class="px-2 py-1 rounded-full text-xs font-semibold border-0 {{ badges.get(p.status, badges['interested']) }}">
+                <select name="status" onchange="this.form.submit()" aria-label="Status"
+                        class="badge badge-select {{ badges.get(p.status, '') }}">
                   {% for s in ['interested','applied','interview','offer','rejected','archived'] %}
                     <option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s|capitalize }}</option>
                   {% endfor %}
                 </select>
               </form>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap">
+            <td class="whitespace-nowrap">
               {% if p.deadline %}
-                <span class="{% if overdue %}text-rose-600 dark:text-rose-400 font-medium{% elif soon %}text-amber-600 dark:text-amber-400 font-medium{% endif %}">
+                <span class="{% if overdue %}text-danger font-medium{% elif soon %}text-warning font-medium{% endif %}">
                   {{ p.deadline | d }}{% if soon %} · {{ (p.deadline - today).days }}d left{% elif overdue %} · passed{% endif %}
                 </span>
-              {% else %}<span class="text-slate-400">—</span>{% endif %}
+              {% else %}<span class="text-faint">—</span>{% endif %}
             </td>
-            <td class="px-4 py-3">
-              <a href="{{ p.link }}" target="_blank" rel="noopener" class="text-fuchsia-700 dark:text-fuchsia-400 hover:underline">Open</a>
+            <td>
+              <a href="{{ p.link }}" target="_blank" rel="noopener" class="link inline-flex items-center gap-1">Open {{ ui.icon('external', 13) }}</a>
             </td>
-            <td class="px-4 py-3">
-              <div class="flex gap-2 justify-end">
-                <a href="/positions/edit/{{ p.id }}" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 text-white hover:opacity-90">Edit</a>
+            <td>
+              <div class="flex gap-1 justify-end">
+                <a href="/positions/edit/{{ p.id }}" class="icon-btn" title="Edit" aria-label="Edit">{{ ui.icon('pencil', 15) }}</a>
                 <form action="/positions/delete/{{ p.id }}" method="post" onsubmit="return confirm('Delete this position?')">
-                  <button class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:opacity-90">Delete</button>
+                  <button class="icon-btn hover:text-danger" title="Delete" aria-label="Delete">{{ ui.icon('trash', 15) }}</button>
                 </form>
               </div>
             </td>

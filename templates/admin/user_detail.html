@@ -1,15 +1,21 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}{{ u.username }} · Admin{% endblock %}
 {% block content %}
 {% include "admin/_nav.html" %}
 
-<div class="grid gap-5">
-  <div class="flex flex-wrap items-center gap-3 justify-between">
+<div class="grid grid-cols-1 gap-6">
+  <div class="page-header mb-0">
     <div>
-      <h1 class="text-2xl font-semibold">{{ u.username }}</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400">{{ u.full_name or '—' }} · {{ u.email }}</p>
+      <a href="/admin/users" class="text-sm link-muted inline-flex items-center gap-1 mb-2">{{ ui.icon('arrow-left', 14) }}All users</a>
+      <h2 class="page-title">{{ u.username }}</h2>
+      <p class="page-subtitle">{{ u.full_name or '—' }} · {{ u.email }}</p>
     </div>
-    <a href="/admin/users" class="text-sm text-sky-700 dark:text-sky-400 hover:underline">← All users</a>
+    <div class="flex gap-1 flex-wrap">
+      {% if u.is_admin %}<span class="badge badge-accent">admin</span>{% endif %}
+      {% if not u.is_active %}<span class="badge badge-danger">suspended</span>{% endif %}
+      {% if not u.is_email_verified %}<span class="badge badge-warning">unverified</span>{% endif %}
+    </div>
   </div>
 
   <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -18,80 +24,77 @@
         ('Conversations', counts.conversations),
         ('Joined', u.created_at | dt('%Y-%m-%d')),
         ('Last login', u.last_login_at | dt('%Y-%m-%d') if u.last_login_at else '—')] %}
-      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
-        <div class="mt-1 text-lg font-semibold">{{ value }}</div>
-      </div>
+      {{ ui.stat(label, value, cls='text-lg') }}
     {% endfor %}
   </div>
 
-  <div class="grid lg:grid-cols-2 gap-5">
-    <!-- Flags -->
-    <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-      <h2 class="font-semibold mb-4">Account flags</h2>
-      <form method="post" action="/admin/users/{{ u.id }}/flags" class="grid gap-3">
-        {% for name, label, checked, hint in [
-            ('is_active', 'Active', u.is_active, 'Unchecking signs them out and blocks sign-in.'),
-            ('is_email_verified', 'Email verified', u.is_email_verified, 'Check to confirm manually.'),
-            ('is_admin', 'Administrator', u.is_admin, 'Full access to this panel.')] %}
-          <label class="flex items-start gap-2.5">
-            <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="mt-0.5 h-4 w-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500" />
-            <span><span class="text-sm font-medium">{{ label }}</span>
-              <span class="block text-xs text-slate-500 dark:text-slate-400">{{ hint }}</span></span>
-          </label>
-        {% endfor %}
-        <button class="justify-self-start px-4 py-2 rounded-xl bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-sm font-medium">Save flags</button>
+  <div class="grid lg:grid-cols-2 gap-4">
+    <section class="card">
+      <div class="card-header"><h3 class="card-title">Account flags</h3></div>
+      <form method="post" action="/admin/users/{{ u.id }}/flags">
+        <div class="card-body grid gap-4">
+          {% for name, label, checked, hint in [
+              ('is_active', 'Active', u.is_active, 'Unchecking signs them out and blocks sign-in.'),
+              ('is_email_verified', 'Email verified', u.is_email_verified, 'Check to confirm manually.'),
+              ('is_admin', 'Administrator', u.is_admin, 'Full access to this panel.')] %}
+            <label class="check items-start">
+              <input type="checkbox" name="{{ name }}" class="checkbox mt-0.5" {% if checked %}checked{% endif %} />
+              <span><span class="font-medium">{{ label }}</span><span class="block hint">{{ hint }}</span></span>
+            </label>
+          {% endfor %}
+        </div>
+        <div class="card-footer"><button class="btn btn-primary btn-sm">Save flags</button></div>
       </form>
     </section>
 
-    <!-- Subscription -->
-    <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-      <h2 class="font-semibold mb-1">Subscription</h2>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        {% if current_sub %}
-          Currently <strong>{{ current_sub.plan.name }}</strong>
-          {% if current_sub.expires_at %}until {{ current_sub.expires_at | dt('%Y-%m-%d') }} ({{ current_sub.days_remaining }} days){% else %}for life{% endif %}
-          · granted via {{ current_sub.source }}
-        {% else %}No active subscription (Free).{% endif %}
-      </p>
-      <form method="post" action="/admin/users/{{ u.id }}/subscription" class="grid gap-3">
-        <label class="grid gap-1">
-          <span class="text-xs text-slate-500 dark:text-slate-400">Plan</span>
-          <select name="plan_code" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-            {% for p in plans %}<option value="{{ p.code }}">{{ p.name }}{% if p.duration_days %} ({{ p.duration_days }}d){% else %} (lifetime){% endif %}</option>{% endfor %}
-            <option value="__revoke__">— Revoke current subscription —</option>
-          </select>
-        </label>
-        <label class="grid gap-1">
-          <span class="text-xs text-slate-500 dark:text-slate-400">Days (optional override)</span>
-          <input name="days" placeholder="leave blank to use the plan's own duration" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-        </label>
-        <label class="grid gap-1">
-          <span class="text-xs text-slate-500 dark:text-slate-400">Note</span>
-          <input name="note" placeholder="e.g. compensation for the March outage" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-        </label>
-        <button class="justify-self-start px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium">Apply</button>
+    <section class="card">
+      <div class="card-header"><h3 class="card-title">Subscription</h3></div>
+      <form method="post" action="/admin/users/{{ u.id }}/subscription">
+        <div class="card-body grid gap-4">
+          <p class="text-muted">
+            {% if current_sub %}
+              Currently <strong class="text-fg">{{ current_sub.plan.name }}</strong>
+              {% if current_sub.expires_at %}until {{ current_sub.expires_at | dt('%Y-%m-%d') }} ({{ current_sub.days_remaining }} days){% else %}for life{% endif %}
+              · granted via {{ current_sub.source }}
+            {% else %}No active subscription (Free).{% endif %}
+          </p>
+          <label class="field">
+            <span class="label">Plan</span>
+            <select name="plan_code" class="input">
+              {% for p in plans %}<option value="{{ p.code }}">{{ p.name }}{% if p.duration_days %} ({{ p.duration_days }}d){% else %} (lifetime){% endif %}</option>{% endfor %}
+              <option value="__revoke__">— Revoke current subscription —</option>
+            </select>
+          </label>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <label class="field">
+              <span class="label">Days <span class="label-optional">(override)</span></span>
+              <input name="days" placeholder="Plan default" class="input" />
+            </label>
+            <label class="field">
+              <span class="label">Note</span>
+              <input name="note" placeholder="e.g. outage compensation" class="input" />
+            </label>
+          </div>
+        </div>
+        <div class="card-footer"><button class="btn btn-primary btn-sm">Apply</button></div>
       </form>
     </section>
   </div>
 
   {% if subscriptions %}
-  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold">Subscription history</div>
-    <div class="overflow-x-auto"><table class="min-w-full text-sm">
-      <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
-        <th class="px-4 py-2.5">Plan</th><th class="px-4 py-2.5">Status</th><th class="px-4 py-2.5">Started</th>
-        <th class="px-4 py-2.5">Expires</th><th class="px-4 py-2.5">Source</th><th class="px-4 py-2.5">Note</th>
-      </tr></thead>
-      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+  <section class="card">
+    <div class="card-header"><h3 class="card-title">Subscription history</h3></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Plan</th><th>Status</th><th>Started</th><th>Expires</th><th>Source</th><th>Note</th></tr></thead>
+      <tbody>
         {% for s in subscriptions %}
         <tr>
-          <td class="px-4 py-2.5 font-medium">{{ s.plan.name if s.plan else '—' }}</td>
-          <td class="px-4 py-2.5">{{ s.status }}</td>
-          <td class="px-4 py-2.5 whitespace-nowrap">{{ s.started_at | dt('%Y-%m-%d') }}</td>
-          <td class="px-4 py-2.5 whitespace-nowrap">{{ s.expires_at | dt('%Y-%m-%d') if s.expires_at else 'never' }}</td>
-          <td class="px-4 py-2.5">{{ s.source }}</td>
-          <td class="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ s.note or '' }}</td>
+          <td class="font-medium">{{ s.plan.name if s.plan else '—' }}</td>
+          <td>{{ ui.status_badge(s.status) }}</td>
+          <td class="whitespace-nowrap">{{ s.started_at | dt('%Y-%m-%d') }}</td>
+          <td class="whitespace-nowrap">{{ s.expires_at | dt('%Y-%m-%d') if s.expires_at else 'never' }}</td>
+          <td>{{ s.source }}</td>
+          <td class="text-xs cell-muted">{{ s.note or '' }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -100,22 +103,19 @@
   {% endif %}
 
   {% if payments %}
-  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold">Payments</div>
-    <div class="overflow-x-auto"><table class="min-w-full text-sm">
-      <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
-        <th class="px-4 py-2.5">Date</th><th class="px-4 py-2.5">Plan</th><th class="px-4 py-2.5">Amount</th>
-        <th class="px-4 py-2.5">Status</th><th class="px-4 py-2.5">Authority</th><th class="px-4 py-2.5">Ref</th>
-      </tr></thead>
-      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+  <section class="card">
+    <div class="card-header"><h3 class="card-title">Payments</h3></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Date</th><th>Plan</th><th class="num">Amount</th><th>Status</th><th>Authority</th><th>Ref</th></tr></thead>
+      <tbody>
         {% for p in payments %}
         <tr>
-          <td class="px-4 py-2.5 whitespace-nowrap">{{ (p.paid_at or p.created_at) | dt('%Y-%m-%d %H:%M') }}</td>
-          <td class="px-4 py-2.5">{{ p.plan.name if p.plan else '—' }}</td>
-          <td class="px-4 py-2.5">{{ "{:,}".format(p.amount_toman) }} T</td>
-          <td class="px-4 py-2.5">{{ p.status }}</td>
-          <td class="px-4 py-2.5 font-mono text-xs text-slate-400">{{ (p.authority or '')[:18] }}</td>
-          <td class="px-4 py-2.5 font-mono text-xs">{{ p.ref_id or '—' }}</td>
+          <td class="whitespace-nowrap">{{ (p.paid_at or p.created_at) | dt('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ p.plan.name if p.plan else '—' }}</td>
+          <td class="num whitespace-nowrap">{{ "{:,}".format(p.amount_toman) }} T</td>
+          <td>{{ ui.status_badge(p.status) }}</td>
+          <td class="mono text-xs cell-muted">{{ (p.authority or '')[:18] }}</td>
+          <td class="mono text-xs">{{ p.ref_id or '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -124,52 +124,51 @@
   {% endif %}
 
   {% if usage %}
-  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-    <h2 class="font-semibold mb-3">AI usage</h2>
-    <div class="flex flex-wrap gap-2 text-sm">
+  <section class="card">
+    <div class="card-header"><h3 class="card-title">AI usage</h3></div>
+    <div class="card-body flex flex-wrap gap-2">
       {% for row in usage %}
-        <span class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
-          {{ row.period }}: <strong>{{ row.message_count }}</strong> msgs ·
-          {{ "{:,}".format(row.input_tokens + row.output_tokens) }} tokens
-        </span>
+        <span class="badge">{{ row.period }}: <strong class="text-fg">{{ row.message_count }}</strong> msgs · {{ "{:,}".format(row.input_tokens + row.output_tokens) }} tokens</span>
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-      <span class="font-semibold">Activity log</span>
-      <a href="/admin/activity?user_id={{ u.id }}" class="text-sm text-sky-700 dark:text-sky-400 hover:underline">Filter full log →</a>
+  <section class="card">
+    <div class="card-header">
+      <h3 class="card-title">Activity log</h3>
+      <a href="/admin/activity?user_id={{ u.id }}" class="text-sm link">Filter full log</a>
     </div>
-    <div class="divide-y divide-slate-100 dark:divide-slate-800 max-h-96 overflow-y-auto">
+    <div class="divide max-h-96 overflow-y-auto">
       {% for a in activity %}
-      <div class="px-5 py-2 flex flex-wrap gap-x-4 gap-y-1 text-sm items-baseline">
-        <span class="text-xs text-slate-400 w-32 shrink-0">{{ a.created_at | dt('%m-%d %H:%M') }}</span>
-        <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{{ a.action }}</span>
-        <span class="text-slate-600 dark:text-slate-300">{{ a.summary or '' }}</span>
-        {% if a.ip %}<span class="text-xs text-slate-400 ml-auto font-mono">{{ a.ip }}</span>{% endif %}
+      <div class="px-5 py-2 flex flex-wrap gap-x-4 gap-y-1 items-center">
+        <span class="text-xs text-faint w-24 shrink-0 tabular-nums">{{ a.created_at | dt('%m-%d %H:%M') }}</span>
+        <span class="badge badge-mono">{{ a.action }}</span>
+        <span class="text-muted">{{ a.summary or '' }}</span>
+        {% if a.ip %}<span class="text-xs text-faint ml-auto mono">{{ a.ip }}</span>{% endif %}
       </div>
       {% else %}
-        <div class="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No activity recorded.</div>
+        {{ ui.empty('clock', 'No activity recorded.') }}
       {% endfor %}
     </div>
   </section>
 
-  <section class="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 p-5">
-    <h2 class="font-semibold text-rose-800 dark:text-rose-300">Delete this account</h2>
-    <p class="text-sm text-rose-700 dark:text-rose-400 mt-1 mb-4">
-      Permanently removes {{ u.username }} along with their contacts, positions, conversations,
-      subscriptions and payment records. This cannot be undone.
-    </p>
-    <form method="post" action="/admin/users/{{ u.id }}/delete" class="flex flex-wrap gap-2 items-end"
-          onsubmit="return confirm('Permanently delete {{ u.username }} and all their data?')">
-      <label class="grid gap-1">
-        <span class="text-xs text-rose-700 dark:text-rose-400">Type <strong>{{ u.username }}</strong> to confirm</span>
-        <input name="confirm" required placeholder="{{ u.username }}" class="px-3 py-2 rounded-lg border border-rose-300 dark:border-rose-800 bg-white dark:bg-slate-950" />
-      </label>
-      <button class="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium">Delete permanently</button>
-    </form>
+  <section class="card card-danger">
+    <div class="card-header"><h3 class="card-title text-danger">Delete this account</h3></div>
+    <div class="card-body">
+      <p class="text-muted mb-4">
+        Permanently removes {{ u.username }} along with their contacts, positions, conversations,
+        subscriptions and payment records. This cannot be undone.
+      </p>
+      <form method="post" action="/admin/users/{{ u.id }}/delete" class="toolbar"
+            onsubmit="return confirm('Permanently delete {{ u.username }} and all their data?')">
+        <label class="field">
+          <span class="label">Type <strong>{{ u.username }}</strong> to confirm</span>
+          <input name="confirm" required placeholder="{{ u.username }}" class="input w-64" />
+        </label>
+        <button class="btn btn-danger">Delete permanently</button>
+      </form>
+    </div>
   </section>
 </div>
 {% endblock %}

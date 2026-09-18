@@ -1,59 +1,46 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Edit {{ c.name }} · ApplyList{% endblock %}
 {% block content %}
-<section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-6 max-w-3xl mx-auto">
-  <h2 class="text-lg font-semibold mb-5 grad-text">Edit contact</h2>
-  {% if error %}<div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm">{{ error }}</div>{% endif %}
-
-  <form action="/edit/{{ c.id }}" method="post" class="grid md:grid-cols-2 gap-4">
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Name</span>
-      <input name="name" value="{{ c.name }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">University</span>
-      <input name="university" value="{{ c.university }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Research focus</span>
-      <input name="research_focus" value="{{ c.research_focus }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Email</span>
-      <input type="email" name="contact_email" value="{{ c.contact_email }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Category</span>
-      <input name="category" value="{{ c.category or 'General' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Source URL</span>
-      <input name="source_url" value="{{ c.source_url }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Notes</span>
-      <textarea name="notes" rows="4" placeholder="What you want to mention when you write to them…"
-                class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-emerald-400 focus:outline-none">{{ c.notes or '' }}</textarea>
-    </label>
-
-    <div class="flex items-center gap-6 md:col-span-2 mt-1">
-      <label class="inline-flex items-center gap-2">
-        <input type="checkbox" name="email_sent" {% if c.email_sent %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-        <span class="text-sm">Email sent</span>
-      </label>
-      <label class="inline-flex items-center gap-2">
-        <input type="checkbox" name="reminder_sent" {% if c.reminder_sent %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500" />
-        <span class="text-sm">Reminder sent</span>
-      </label>
-      {% if c.email_sent_at %}
-        <span class="text-xs text-slate-500 dark:text-slate-400">Last sent {{ c.email_sent_at | dt }}</span>
-      {% endif %}
+<div class="max-w-3xl mx-auto">
+  <a href="/professors" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Professors</a>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">{{ c.name }}</h1>
+      <p class="page-subtitle">{{ c.university }}</p>
     </div>
+  </div>
 
-    <div class="md:col-span-2 flex items-center gap-3 mt-2">
-      <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600 text-white font-medium shadow hover:opacity-95">Save changes</button>
-      <a href="/professors" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</a>
-    </div>
-  </form>
-</section>
+  <section class="card">
+    <form action="/edit/{{ c.id }}" method="post">
+      <div class="card-body grid md:grid-cols-2 gap-4">
+        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
+        <label class="field"><span class="label">Name</span>
+          <input name="name" value="{{ c.name }}" required class="input" /></label>
+        <label class="field"><span class="label">University</span>
+          <input name="university" value="{{ c.university }}" required class="input" /></label>
+        <label class="field md:col-span-2"><span class="label">Research focus</span>
+          <input name="research_focus" value="{{ c.research_focus }}" required class="input" /></label>
+        <label class="field"><span class="label">Email</span>
+          <input type="email" name="contact_email" value="{{ c.contact_email }}" required class="input" /></label>
+        <label class="field"><span class="label">Category</span>
+          <input name="category" value="{{ c.category or 'General' }}" class="input" /></label>
+        <label class="field md:col-span-2"><span class="label">Source URL</span>
+          <input name="source_url" value="{{ c.source_url }}" class="input" /></label>
+        <label class="field md:col-span-2"><span class="label">Notes</span>
+          <textarea name="notes" rows="4" class="input" placeholder="What you want to mention when you write to them…">{{ c.notes or '' }}</textarea></label>
+
+        <div class="md:col-span-2 flex flex-wrap items-center gap-6">
+          <label class="check"><input type="checkbox" name="email_sent" class="checkbox" {% if c.email_sent %}checked{% endif %} /><span>Email sent</span></label>
+          <label class="check"><input type="checkbox" name="reminder_sent" class="checkbox" {% if c.reminder_sent %}checked{% endif %} /><span>Reminder sent</span></label>
+          {% if c.email_sent_at %}<span class="text-xs text-muted">Last sent {{ c.email_sent_at | dt }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="card-footer flex items-center gap-2">
+        <button class="btn btn-primary">Save changes</button>
+        <a href="/professors" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
 {% endblock %}

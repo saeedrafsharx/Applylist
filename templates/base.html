@@ -1,130 +1,144 @@
+{% import "partials/ui.html" as ui -%}
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}ApplyList{% endblock %}</title>
     <meta name="description" content="{% block description %}Track professors, labs and open positions while you apply for graduate school and research jobs.{% endblock %}" />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
 
     <script>
-      tailwind = { config: { darkMode: 'class' } };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <script>
-      // Applied before first paint so the page never flashes the wrong theme.
+      // Resolve the theme before first paint so the page never flashes the wrong one.
+      // An explicit choice is stored; with none, follow the operating system.
       (() => {
-        try {
-          const saved = localStorage.getItem('theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.classList.toggle('dark', saved === 'dark' || (!saved && prefersDark));
-        } catch (e) { /* private mode - fall back to light */ }
+        let saved = null;
+        try { saved = localStorage.getItem('theme'); } catch (e) {}
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
       })();
     </script>
 
-    <style>
-      .gradient-card { position: relative; }
-      .gradient-card::before {
-        content: ""; position: absolute; inset: 0; padding: 1px; border-radius: 1rem;
-        background: linear-gradient(135deg, #06b6d4, #8b5cf6, #10b981);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
-        pointer-events: none;
-      }
-      .gradient-card > * { position: relative; z-index: 1; }
-      .grad-text {
-        background-image: linear-gradient(90deg, #0284c7, #c026d3, #059669);
-        -webkit-background-clip: text; background-clip: text; color: transparent;
-      }
-      [x-cloak] { display: none !important; }
-    </style>
+    <link rel="stylesheet" href="/static/app.css?v=4" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Must run after the CDN script: it reads `tailwind.config` from the object it defines.
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              canvas: 'rgb(var(--canvas) / <alpha-value>)',
+              surface: 'rgb(var(--surface) / <alpha-value>)',
+              subtle: 'rgb(var(--subtle) / <alpha-value>)',
+              line: 'rgb(var(--line) / <alpha-value>)',
+              fg: 'rgb(var(--fg) / <alpha-value>)',
+              muted: 'rgb(var(--muted) / <alpha-value>)',
+              faint: 'rgb(var(--faint) / <alpha-value>)',
+              accent: 'rgb(var(--accent-text) / <alpha-value>)',
+              success: 'rgb(var(--success) / <alpha-value>)',
+              warning: 'rgb(var(--warning) / <alpha-value>)',
+              danger: 'rgb(var(--danger) / <alpha-value>)',
+            },
+          },
+        },
+      };
+    </script>
     {% block head %}{% endblock %}
   </head>
 
-  <body class="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100
-               text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-black dark:text-slate-100">
-
+  <body class="min-h-screen flex flex-col">
     {% set u = user if user is defined and user else request.state.user %}
+    {% set path = request.url.path %}
 
-    <header class="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        <a href="/" class="text-xl font-semibold tracking-tight grad-text shrink-0">ApplyList</a>
+    <header class="topbar">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
+        <a href="/" class="brand shrink-0"><span class="brand-mark">A</span>ApplyList</a>
 
         {% if u %}
-        <nav class="hidden md:flex items-center gap-1 text-sm">
-          {% set nav = [('/professors','Professors'), ('/positions','Positions'), ('/database','Database'), ('/assistant','Assistant')] %}
-          {% for href, label in nav %}
-            <a href="{{ href }}"
-               class="px-3 py-1.5 rounded-lg transition
-                      {% if request.url.path.startswith(href) %}bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-medium
-                      {% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
-              {{ label }}
-            </a>
+        <nav class="hidden md:flex items-center gap-0.5">
+          {% for href, label in [('/professors','Professors'), ('/positions','Positions'), ('/database','Database'), ('/assistant','Assistant')] %}
+            <a href="{{ href }}" class="nav-link {% if path.startswith(href) %}active{% endif %}">{{ label }}</a>
           {% endfor %}
           {% if u.is_admin %}
-            <a href="/admin"
-               class="px-3 py-1.5 rounded-lg transition
-                      {% if request.url.path.startswith('/admin') %}bg-fuchsia-600 text-white font-medium
-                      {% else %}text-fuchsia-700 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40{% endif %}">
-              Admin
-            </a>
+            <a href="/admin" class="nav-link {% if path.startswith('/admin') %}active{% endif %}">Admin</a>
           {% endif %}
         </nav>
         {% endif %}
 
-        <div class="flex items-center gap-2 text-sm shrink-0">
-          <button id="themeToggle" title="Toggle light / dark"
-                  class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700
-                         hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <span class="hidden dark:inline">☀</span><span class="inline dark:hidden">☾</span>
+        <div class="ml-auto flex items-center gap-1.5">
+          <button id="themeToggle" type="button" class="icon-btn" aria-label="Switch theme" title="Switch theme">
+            <span class="show-light">{{ ui.icon('moon', 17) }}</span>
+            <span class="show-dark">{{ ui.icon('sun', 17) }}</span>
           </button>
 
           {% if u %}
             {% if not u.is_email_verified %}
-              <a href="/verify-email" class="hidden sm:inline px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 text-xs font-medium">Verify email</a>
+              <a href="/verify-email" class="badge badge-warning hidden sm:inline-flex">Verify email</a>
             {% endif %}
-            <a href="/billing" class="hidden sm:inline text-slate-600 dark:text-slate-300 hover:underline">{{ u.username }}</a>
+            <a href="/billing" class="nav-link hidden sm:inline-flex {% if path.startswith('/billing') %}active{% endif %}" title="Your account">
+              {{ ui.icon('user', 15) }}{{ u.username }}
+            </a>
             <form action="/logout" method="post">
-              <button class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-orange-500 text-white">Sign out</button>
+              <button class="icon-btn" aria-label="Sign out" title="Sign out">{{ ui.icon('logout', 16) }}</button>
             </form>
           {% else %}
-            <a class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 text-white" href="/login">Sign in</a>
-            <a class="hidden sm:inline px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700" href="/register">Register</a>
+            <a class="btn btn-ghost btn-sm" href="/login">Sign in</a>
+            <a class="btn btn-primary btn-sm" href="/register">Get started</a>
           {% endif %}
         </div>
       </div>
 
       {% if u %}
-      <nav class="md:hidden flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm">
+      <nav class="md:hidden flex items-center gap-0.5 overflow-x-auto px-3 pb-2">
         {% for href, label in [('/professors','Professors'), ('/positions','Positions'), ('/database','Database'), ('/assistant','Assistant')] %}
-          <a href="{{ href }}" class="px-3 py-1 rounded-lg whitespace-nowrap
-             {% if request.url.path.startswith(href) %}bg-slate-900 text-white dark:bg-white dark:text-slate-900{% else %}text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">{{ label }}</a>
+          <a href="{{ href }}" class="nav-link {% if path.startswith(href) %}active{% endif %}">{{ label }}</a>
         {% endfor %}
-        {% if u.is_admin %}<a href="/admin" class="px-3 py-1 rounded-lg whitespace-nowrap text-fuchsia-700 dark:text-fuchsia-400 border border-fuchsia-200 dark:border-fuchsia-800">Admin</a>{% endif %}
+        {% if u.is_admin %}<a href="/admin" class="nav-link {% if path.startswith('/admin') %}active{% endif %}">Admin</a>{% endif %}
+        <a href="/billing" class="nav-link {% if path.startswith('/billing') %}active{% endif %}">Account</a>
       </nav>
       {% endif %}
     </header>
 
-    <main class="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {% include "partials/flash.html" %}
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="border-t border-slate-200 dark:border-slate-800 mt-8">
-      <div class="max-w-7xl mx-auto px-4 py-6 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-5 gap-y-2 justify-between">
-        <span>ApplyList · built for students applying to grad school</span>
-        <span class="flex gap-4">
-          <a href="/pricing" class="hover:underline">Pricing</a>
-          <a href="/database/takedown" class="hover:underline">Remove my listing</a>
+    <footer class="border-t border-line">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-xs text-muted flex flex-wrap gap-x-6 gap-y-2 justify-between">
+        <span>© ApplyList · Built for students applying to grad school</span>
+        <span class="flex gap-5">
+          <a href="/pricing" class="link-muted">Pricing</a>
+          <a href="/database/takedown" class="link-muted">Remove my listing</a>
         </span>
       </div>
     </footer>
 
     <script>
-      document.getElementById('themeToggle')?.addEventListener('click', () => {
-        const dark = document.documentElement.classList.toggle('dark');
-        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-      });
+      (() => {
+        const root = document.documentElement;
+        const media = matchMedia('(prefers-color-scheme: dark)');
+        const stored = () => { try { return localStorage.getItem('theme'); } catch (e) { return null; } };
+
+        document.getElementById('themeToggle')?.addEventListener('click', () => {
+          const dark = !root.classList.contains('dark');
+          root.classList.toggle('dark', dark);
+          try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+        });
+
+        // With no explicit choice, keep following the OS if it changes while the page is open.
+        media.addEventListener?.('change', (e) => { if (!stored()) root.classList.toggle('dark', e.matches); });
+
+        // Keep other open tabs in step with a choice made here.
+        addEventListener('storage', (e) => {
+          if (e.key === 'theme') root.classList.toggle('dark', e.newValue ? e.newValue === 'dark' : media.matches);
+        });
+
+        // Enable colour transitions only after the first paint.
+        requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('theme-ready')));
+      })();
     </script>
     {% block scripts %}{% endblock %}
   </body>

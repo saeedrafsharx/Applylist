@@ -99,7 +99,9 @@ Admins can grant, extend, or revoke any plan by hand from `/admin/users/{id}` �
 
 `PoliteFetcher` reads and obeys `robots.txt` for our own user agent, honors `Crawl-delay`, rate-limits per host, identifies itself contactably, and caps pages per run. `SCRAPER_RESPECT_ROBOTS` exists for testing against your own fixtures — leave it on in production.
 
-Parsers live in `services/scraper/parsers.py` and are registered in `PARSERS`. Both current ones are deliberately structure-based rather than keyed to CSS class names: `mailto_directory` anchors on `mailto:` links and walks up to the enclosing card; `profile_links` collects person-shaped anchor text. They filter out generic addresses (`admissions@`, `info@`) and non-name text. A run that succeeds with zero records almost always means the page was redesigned — `/admin/scraper/runs/{id}` says so explicitly.
+Parsers live in `services/scraper/parsers.py` and are registered in `PARSERS`. None key on CSS class names; they anchor on structure that survives redesigns. `table_directory` reads `<table>`s by their header text (Name / E-mail / Website / Notes). `mailto_directory` anchors on addresses — `mailto:` links *and* addresses written out as text, including `name [at] uni [dot] edu` disguises and Cloudflare's `data-cfemail` — then climbs to the largest ancestor that holds no *other* person's address, which is the card whatever the site calls it. `profile_links` collects person-shaped link text for name-only indexes. `auto` (the default) runs the first two, keeps whichever explains the page best, and falls back to `profile_links`. All filter generic inboxes (`admissions@`) and non-name text; a card with no readable name is skipped rather than given a name guessed from the address. A run that succeeds with zero records almost always means the page was redesigned — `/admin/scraper/runs/{id}` says so explicitly, and every run stores a sample of what it parsed so a dry run doubles as a preview.
+
+`runner.collect()` is the database-free crawl loop: it follows "next page" links (resolving against the post-redirect URL, since university sites move pages between hosts), and visits profile pages only for people listed without an address. Admin-triggered runs execute in a FastAPI background task, never inside the request — a polite crawl with `Crawl-delay: 10` takes minutes, longer than any proxy holds a request open. The run row is committed as it progresses so the admin page (which auto-refreshes while anything is running) shows it live; runs left `running` by a restart are expired after two hours.
 
 Removal requests at `/database/takedown` are reachable **without an account**, deliberately: the people listed are not users, and requiring signup to opt out would be indefensible. A request unpublishes the entry immediately, before a human reviews it.
 
@@ -117,7 +119,13 @@ Quota is enforced against the `AIUsage` monthly rollup **before** the API call, 
 
 ### Templates
 
-`base.html` holds the nav, the Tailwind CDN script, and the class-based dark-mode toggle (applied inline before first paint to avoid a flash). Every page extends it. `render()` in `deps.py` injects `request`, `user`, and the popped `flash` — use it rather than `TemplateResponse` directly, or the flash will stick around. Filters: `| dt`, `| d`, `| toman`.
+`base.html` holds the nav, the Tailwind CDN script, and the theme toggle. The theme is resolved by an inline script before first paint (stored choice, else the OS preference), and the page keeps following the OS while no explicit choice is stored. `tailwind.config` must be assigned *after* the CDN script loads — assigning it before is silently discarded, which is how the toggle once did nothing.
+
+Colours live in `static/app.css` as RGB tokens (`--fg`, `--muted`, `--surface`, `--line`, `--accent`, …) defined once for light and once under `html.dark`. Components (`.card`, `.btn-*`, `.input`, `.table`, `.badge-*`, `.alert-*`, `.stat`) use only the tokens, so they need no `dark:` variants — don't add any. Tailwind is for layout; its colour names `canvas`, `surface`, `fg`, `muted`, `faint`, `accent`, `success`, `warning`, `danger` map onto the same tokens. Bump the `?v=` on the stylesheet link when you change it.
+
+`partials/ui.html` has the shared macros — `icon()` (inline SVG), `empty()`, `stat()`, `status_badge()`; import it per template (`{% import "partials/ui.html" as ui %}`), since imports in `base.html` don't reach child blocks. A single-column `grid` wrapper around a wide table needs `grid-cols-1`, or the table stretches the page instead of scrolling.
+
+Every page extends `base.html`. `render()` in `deps.py` injects `request`, `user`, and the popped `flash` — use it rather than `TemplateResponse` directly, or the flash will stick around. Filters: `| dt`, `| d`, `| toman`.
 
 ## Schema changes
 

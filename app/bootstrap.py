@@ -79,20 +79,31 @@ DEFAULT_SCRAPE_SOURCES = [
     dict(
         key="mcgill_ipn",
         label="McGill — Integrated Program in Neuroscience",
-        parser="mailto_directory",
+        parser="auto",
         start_url="https://www.mcgill.ca/ipn/prospective/supervisors-recruiting",
         university_slug="mcgill",
-        notes="Public list of IPN supervisors currently recruiting.",
+        notes="Public table of IPN supervisors currently recruiting; addresses written as name [at] mcgill.ca.",
     ),
     dict(
         key="queens_cns",
         label="Queen's — Centre for Neuroscience Studies",
-        parser="profile_links",
-        start_url="https://neuroscience.queensu.ca/research/faculty",
+        parser="auto",
+        start_url="https://www.queensu.ca/neuroscience/people",
         university_slug="queens",
-        notes="Faculty index; individual profiles carry the addresses.",
+        notes="Paginated member directory with addresses and research interests. The site asks for Crawl-delay: 10.",
     ),
 ]
+
+# Seeded rows that shipped with a value that has since stopped working. A row
+# still holding the old value is updated; one an admin has changed is left alone.
+SCRAPE_SOURCE_REPAIRS = {
+    "mcgill_ipn": {"parser": ("mailto_directory", "auto")},
+    "queens_cns": {
+        "parser": ("profile_links", "auto"),
+        "start_url": ("https://neuroscience.queensu.ca/research/faculty",
+                      "https://www.queensu.ca/neuroscience/people"),
+    },
+}
 
 DEFAULT_UNIVERSITIES = [
     dict(slug="mcgill", name="McGill University", country="Canada", city="Montreal",
@@ -147,6 +158,12 @@ def _seed_scrape_sources(db: Session) -> None:
         ).scalar_one_or_none()
         if existing is None:
             db.add(ScrapeSource(**spec, enabled=False))
+            continue
+        for field, (old, new) in SCRAPE_SOURCE_REPAIRS.get(spec["key"], {}).items():
+            if getattr(existing, field) == old:
+                setattr(existing, field, new)
+                if field == "start_url":
+                    existing.notes = spec["notes"]
     db.flush()
 
 

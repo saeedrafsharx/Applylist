@@ -1,49 +1,83 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Scrape run #{{ run.id }} · Admin{% endblock %}
+{% block head %}
+  {% if run.status == 'running' %}<meta http-equiv="refresh" content="5" />{% endif %}
+{% endblock %}
 {% block content %}
 {% include "admin/_nav.html" %}
 
-<div class="max-w-3xl grid gap-5">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-semibold">Run #{{ run.id }} · <code class="font-mono text-lg">{{ run.source_key }}</code></h1>
-    <a href="/admin/scraper" class="text-sm text-sky-700 dark:text-sky-400 hover:underline">← Scraper</a>
+{% set log = run.log or {} %}
+{% set dry = log.notes and 'dry run — nothing written' in log.notes %}
+<div class="grid grid-cols-1 gap-5">
+  <div>
+    <a href="/admin/scraper" class="text-sm link-muted inline-flex items-center gap-1 mb-2">{{ ui.icon('arrow-left', 14) }}Scraper</a>
+    <div class="flex flex-wrap items-center gap-3">
+      <h2 class="page-title">Run #{{ run.id }}</h2>
+      <span class="badge badge-mono">{{ run.source_key }}</span>
+      {% if run.status == 'running' %}<span class="badge badge-info"><span class="spinner"></span>running</span>
+      {% else %}{{ ui.status_badge(run.status) }}{% endif %}
+      {% if dry %}<span class="badge">dry run</span>{% endif %}
+    </div>
   </div>
 
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
     {% for label, value in [
-        ('Status', run.status), ('Pages fetched', run.pages_fetched),
-        ('Records found', run.records_found), ('Duration', (run.duration_seconds or 0) ~ 's'),
+        ('Pages fetched', run.pages_fetched), ('Records found', run.records_found),
         ('Created', run.records_created), ('Updated', run.records_updated),
+        ('Duration', ('%.1f' | format(run.duration_seconds) ~ 's') if run.duration_seconds is not none else '—'),
         ('Started', run.started_at | dt), ('Finished', run.finished_at | dt if run.finished_at else '—')] %}
-      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
-        <div class="mt-1 font-semibold">{{ value }}</div>
-      </div>
+      {{ ui.stat(label, value, cls='text-base') }}
     {% endfor %}
   </div>
 
   {% if run.error %}
-  <div class="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 p-5">
-    <div class="font-semibold text-rose-800 dark:text-rose-300 mb-1">Error</div>
-    <pre class="text-sm text-rose-700 dark:text-rose-400 whitespace-pre-wrap font-mono">{{ run.error }}</pre>
-  </div>
-  {% endif %}
-
-  {% if run.log and run.log.notes %}
-  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-    <div class="font-semibold mb-2">Run log</div>
-    <ul class="grid gap-1 text-sm font-mono text-slate-600 dark:text-slate-300">
-      {% for note in run.log.notes %}<li class="break-all">• {{ note }}</li>{% endfor %}
-    </ul>
+  <div class="alert alert-error">
+    {{ ui.icon('alert', 16) }}
+    <div class="min-w-0"><div class="font-semibold mb-1">Error</div><pre class="text-sm whitespace-pre-wrap mono">{{ run.error }}</pre></div>
   </div>
   {% endif %}
 
   {% if run.records_found == 0 and run.status == 'success' %}
-  <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-5 text-sm text-amber-900 dark:text-amber-200">
-    <strong>The run succeeded but found nothing.</strong> That usually means the page was
-    redesigned and the parser no longer matches it, not that the directory is empty. Open the
-    source URL and check what the markup looks like now.
+  <div class="alert alert-warning">
+    {{ ui.icon('alert', 16) }}
+    <span><strong>The run succeeded but found nothing.</strong> That usually means the page was
+    redesigned and no parser matches it any more, not that the directory is empty. Try the
+    <code>auto</code> parser, or open the source URL and check whether the listing is still there —
+    some sites now load it with JavaScript, which this crawler doesn't run.</span>
   </div>
+  {% endif %}
+
+  {% if log.sample %}
+  <section class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ 'What it would write' if dry else 'Sample of what it found' }}</h3>
+      <span class="text-xs text-muted">first {{ log.sample | length }} of {{ run.records_found }}</span>
+    </div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Name</th><th>Email</th><th>Title / department</th><th>Research focus</th><th>Link</th></tr></thead>
+      <tbody>
+        {% for r in log.sample %}
+        <tr>
+          <td class="font-medium whitespace-nowrap">{{ r.name }}</td>
+          <td class="mono text-xs">{{ r.email or '—' }}</td>
+          <td class="text-xs cell-muted">{{ r.title or '' }}{% if r.title and r.department %} · {% endif %}{{ r.department or '' }}</td>
+          <td class="text-xs cell-muted max-w-[22rem]">{{ r.research_focus or '—' }}</td>
+          <td>{% if r.profile_url %}<a href="{{ r.profile_url }}" target="_blank" rel="noopener" class="icon-btn" title="{{ r.profile_url }}">{{ ui.icon('external', 14) }}</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% endif %}
+
+  {% if log.notes %}
+  <section class="card">
+    <div class="card-header"><h3 class="card-title">Run log</h3></div>
+    <ol class="card-body grid gap-1 text-xs mono text-muted">
+      {% for note in log.notes %}<li class="break-all">{{ note }}</li>{% endfor %}
+    </ol>
+  </section>
   {% endif %}
 </div>
 {% endblock %}

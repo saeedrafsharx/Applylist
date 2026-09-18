@@ -1,41 +1,37 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Edit position · ApplyList{% endblock %}
 {% block content %}
-<section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-6 max-w-3xl mx-auto">
-  <h2 class="text-lg font-semibold mb-5 grad-text">Edit position</h2>
-  {% if error %}<div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm">{{ error }}</div>{% endif %}
+<div class="max-w-3xl mx-auto">
+  <a href="/positions" class="text-sm link-muted inline-flex items-center gap-1 mb-4">{{ ui.icon('arrow-left', 14) }}Positions</a>
+  <div class="page-header">
+    <h1 class="page-title">Edit position</h1>
+  </div>
 
-  <form action="/positions/edit/{{ p.id }}" method="post" class="grid md:grid-cols-2 gap-4">
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Field / title</span>
-      <input name="field" value="{{ p.field }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Link</span>
-      <input name="link" value="{{ p.link }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Category</span>
-      <input name="category" value="{{ p.category or 'General' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Status</span>
-      <select name="status" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
-        {% for s in statuses %}<option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
-      </select>
-    </label>
-    <label class="grid gap-1">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Deadline</span>
-      <input type="date" name="deadline" value="{{ p.deadline.isoformat() if p.deadline else '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
-    </label>
-    <label class="grid gap-1 md:col-span-2">
-      <span class="text-xs text-slate-500 dark:text-slate-400">Notes</span>
-      <textarea name="notes" rows="4" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">{{ p.notes or '' }}</textarea>
-    </label>
-    <div class="md:col-span-2 flex items-center gap-3">
-      <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white font-medium shadow hover:opacity-95">Save changes</button>
-      <a href="/positions" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</a>
-    </div>
-  </form>
-</section>
+  <section class="card">
+    <form action="/positions/edit/{{ p.id }}" method="post">
+      <div class="card-body grid md:grid-cols-2 gap-4">
+        {% if error %}<div class="alert alert-error md:col-span-2">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
+        <label class="field md:col-span-2"><span class="label">Field / title</span>
+          <input name="field" value="{{ p.field }}" required class="input" /></label>
+        <label class="field md:col-span-2"><span class="label">Link</span>
+          <input name="link" value="{{ p.link }}" required class="input" /></label>
+        <label class="field"><span class="label">Category</span>
+          <input name="category" value="{{ p.category or 'General' }}" class="input" /></label>
+        <label class="field"><span class="label">Status</span>
+          <select name="status" class="input">
+            {% for s in statuses %}<option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
+          </select></label>
+        <label class="field"><span class="label">Deadline</span>
+          <input type="date" name="deadline" value="{{ p.deadline.isoformat() if p.deadline else '' }}" class="input" /></label>
+        <label class="field md:col-span-2"><span class="label">Notes</span>
+          <textarea name="notes" rows="4" class="input">{{ p.notes or '' }}</textarea></label>
+      </div>
+      <div class="card-footer flex items-center gap-2">
+        <button class="btn btn-primary">Save changes</button>
+        <a href="/positions" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
 {% endblock %}

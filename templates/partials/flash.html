@@ -1,11 +1,8 @@
 {% if flash %}
-  {% set styles = {
-    'success': 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-800',
-    'error':   'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/50 dark:text-rose-200 dark:border-rose-800',
-    'warning': 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-800',
-    'info':    'bg-sky-50 text-sky-900 border-sky-200 dark:bg-sky-950/50 dark:text-sky-200 dark:border-sky-800'
-  } %}
-  <div class="mb-5 px-4 py-3 rounded-xl border text-sm {{ styles.get(flash.level, styles['info']) }}">
-    {{ flash.message }}
+  {% import "partials/ui.html" as ui %}
+  {% set icons = {'success': 'check-circle', 'error': 'alert', 'warning': 'alert', 'info': 'info'} %}
+  {% set level = flash.level if flash.level in icons else 'info' %}
+  <div class="alert alert-{{ level }} mb-6" role="status">
+    {{ ui.icon(icons[level], 16) }}<span>{{ flash.message }}</span>
   </div>
 {% endif %}

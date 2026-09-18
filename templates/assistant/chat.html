@@ -1,81 +1,76 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}{{ conversation.title }} · Assistant{% endblock %}
 {% block content %}
-<div class="grid lg:grid-cols-[16rem_1fr] gap-5">
+<div class="grid lg:grid-cols-[15rem_1fr] gap-6">
 
-  <!-- Sidebar -->
-  <aside class="lg:sticky lg:top-24 lg:self-start grid gap-3">
-    <a href="/assistant/new" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium text-center shadow hover:opacity-95">New conversation</a>
-    <a href="/assistant/draft" class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-center hover:bg-slate-50 dark:hover:bg-slate-800">Draft an email</a>
+  <aside class="lg:sticky lg:top-20 lg:self-start grid gap-3">
+    <a href="/assistant/new" class="btn btn-primary">{{ ui.icon('plus', 15) }}New conversation</a>
+    <a href="/assistant/draft" class="btn btn-secondary">{{ ui.icon('mail', 15) }}Draft an email</a>
 
-    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-      <div class="px-4 py-2.5 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">Recent</div>
-      <div class="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+    <div class="card overflow-hidden">
+      <div class="px-4 pt-3 pb-2 section-title mb-0">Recent</div>
+      <div class="max-h-96 overflow-y-auto pb-1">
         {% for c in conversations %}
           <a href="/assistant/c/{{ c.id }}"
-             class="block px-4 py-2.5 text-sm truncate {% if c.id == conversation.id %}bg-violet-50 dark:bg-violet-950/40 font-medium{% else %}hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
-            {{ c.title }}
-            <span class="block text-xs text-slate-400">{{ c.updated_at | dt('%b %d') }}</span>
+             class="block mx-1 px-3 py-2 rounded-md text-sm {% if c.id == conversation.id %}bg-subtle font-medium{% else %}text-muted hover:bg-subtle hover:text-fg{% endif %}">
+            <span class="block truncate">{{ c.title }}</span>
+            <span class="block text-xs text-faint">{{ c.updated_at | dt('%b %d') }}</span>
           </a>
         {% endfor %}
       </div>
     </div>
 
-    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">This month</div>
-      <div class="mt-1 text-sm"><strong>{{ used }}</strong> of {{ quota }} messages</div>
-      <div class="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-violet-500 to-purple-600" style="width: {{ (100 * used / quota) if quota else 0 }}%"></div>
-      </div>
+    <div class="card card-body">
+      <div class="stat-label">This month</div>
+      <div class="mt-1 text-sm"><span class="font-semibold">{{ used }}</span> <span class="text-muted">of {{ quota }} messages</span></div>
+      <div class="progress mt-2"><span style="width: {{ [(100 * used / quota) if quota else 0, 100] | min }}%"></span></div>
     </div>
   </aside>
 
-  <!-- Thread -->
-  <section class="grid gap-4 min-w-0">
+  <section class="grid grid-cols-1 gap-4 min-w-0 content-start">
     <div class="flex items-center justify-between gap-3">
-      <h1 class="text-xl font-semibold truncate">{{ conversation.title }}</h1>
+      <h1 class="text-lg font-semibold truncate">{{ conversation.title }}</h1>
       <form action="/assistant/c/{{ conversation.id }}/archive" method="post">
-        <button class="text-sm text-slate-500 dark:text-slate-400 hover:underline">Archive</button>
+        <button class="btn btn-ghost btn-sm">Archive</button>
       </form>
     </div>
 
     {% if not ai_configured %}
-      <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-sm">
-        <strong>The assistant isn't configured on this server.</strong>
-        Set <code class="font-mono">OPENAI_API_KEY</code> to enable it.
+      <div class="alert alert-warning">
+        {{ ui.icon('alert', 16) }}
+        <span><strong>The assistant isn't configured on this server.</strong> Set <code>OPENAI_API_KEY</code> to enable it.</span>
       </div>
     {% endif %}
 
-    <div class="grid gap-4">
+    <div class="grid grid-cols-1 gap-4">
       {% if not messages %}
-        <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center">
-          <div class="text-4xl mb-3">💬</div>
-          <p class="font-medium">Ask anything about your applications</p>
-          <div class="mt-4 grid sm:grid-cols-2 gap-2 max-w-xl mx-auto text-left text-sm">
-            {% for prompt in [
-              'Write a first email to a professor working on computational neuroimaging.',
-              'My email got no reply after three weeks. Write a follow-up.',
-              'What should a PhD statement of purpose actually contain?',
-              'Review this draft and tell me what is weak: …'
-            ] %}
-              <button type="button" onclick="document.getElementById('msg').value = this.textContent.trim(); document.getElementById('msg').focus();"
-                      class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-left">{{ prompt }}</button>
-            {% endfor %}
-          </div>
+        <div class="card">
+          {% call ui.empty('message', 'Ask anything about your applications') %}
+            <div class="mt-5 grid sm:grid-cols-2 gap-2 max-w-xl mx-auto text-left">
+              {% for prompt in [
+                'Write a first email to a professor working on computational neuroimaging.',
+                'My email got no reply after three weeks. Write a follow-up.',
+                'What should a PhD statement of purpose actually contain?',
+                'Review this draft and tell me what is weak: …'
+              ] %}
+                <button type="button" class="card px-3 py-2.5 text-left text-sm hover:bg-subtle"
+                        onclick="const m = document.getElementById('msg'); m.value = this.textContent.trim(); m.focus();">{{ prompt }}</button>
+              {% endfor %}
+            </div>
+          {% endcall %}
         </div>
       {% endif %}
 
       {% for m in messages %}
-        <div id="{{ 'latest' if loop.last else '' }}" class="flex {{ 'justify-end' if m.role == 'user' else 'justify-start' }}">
-          <div class="max-w-[46rem] rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-relaxed
-                      {% if m.role == 'user' %}bg-gradient-to-r from-sky-600 to-indigo-600 text-white
-                      {% else %}bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800{% endif %}">
-{{ m.content }}
+        <div {% if loop.last %}id="latest"{% endif %} class="flex {{ 'justify-end' if m.role == 'user' else 'justify-start' }}">
+          <div class="bubble {{ 'bubble-user' if m.role == 'user' else 'bubble-assistant' }}">
+            <div class="msg-text">{{ m.content }}</div>
             {% if m.role != 'user' %}
-              <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex gap-3 text-xs text-slate-400">
+              <div class="bubble-meta">
                 <span>{{ m.created_at | dt('%H:%M') }}</span>
                 {% if m.output_tokens %}<span>{{ m.output_tokens }} tokens</span>{% endif %}
-                <button type="button" class="hover:underline copy-btn">Copy</button>
+                <button type="button" class="copy-btn hover:text-fg">Copy</button>
               </div>
             {% endif %}
           </div>
@@ -83,14 +78,13 @@
       {% endfor %}
     </div>
 
-    <form method="post" action="/assistant/c/{{ conversation.id }}/send"
-          class="sticky bottom-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-lg">
+    <form method="post" action="/assistant/c/{{ conversation.id }}/send" class="card sticky bottom-4 p-2 shadow-lg">
       <textarea id="msg" name="message" rows="3" required
                 placeholder="Ask a question, or paste a draft for review…"
-                class="w-full px-3 py-2 rounded-lg bg-transparent resize-y focus:outline-none"></textarea>
-      <div class="flex items-center justify-between gap-3 mt-1">
-        <span class="text-xs text-slate-400">Ctrl + Enter to send</span>
-        <button class="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium shadow hover:opacity-95">Send</button>
+                class="w-full px-3 py-2 bg-transparent resize-y focus:outline-none"></textarea>
+      <div class="flex items-center justify-between gap-3 px-2 pb-1">
+        <span class="text-xs text-faint"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to send</span>
+        <button class="btn btn-primary btn-sm">Send {{ ui.icon('arrow-right', 14) }}</button>
       </div>
     </form>
   </section>
@@ -103,14 +97,13 @@
   box?.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') box.form.requestSubmit();
   });
+  box?.form.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('button:not([type=button])');
+    if (btn) { btn.disabled = true; btn.textContent = 'Thinking…'; }
+  });
   document.querySelectorAll('.copy-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const bubble = btn.closest('div').parentElement;
-      const text = Array.from(bubble.childNodes)
-        .filter((n) => n.nodeType === Node.TEXT_NODE)
-        .map((n) => n.textContent)
-        .join('')
-        .trim();
+      const text = btn.closest('.bubble').querySelector('.msg-text').textContent.trim();
       try {
         await navigator.clipboard.writeText(text);
         btn.textContent = 'Copied';

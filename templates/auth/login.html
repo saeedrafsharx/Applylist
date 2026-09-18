@@ -1,33 +1,36 @@
 {% extends "base.html" %}
+{% import "partials/ui.html" as ui %}
 {% block title %}Sign in · ApplyList{% endblock %}
 {% block content %}
-<div class="max-w-md mx-auto mt-8">
-  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7">
-    <h1 class="text-2xl font-semibold grad-text mb-1">Welcome back</h1>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Sign in to your application tracker.</p>
-
-    {% if error %}<div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm">{{ error }}</div>{% endif %}
-
-    <form method="post" action="/login" class="grid gap-4">
-      <input type="hidden" name="next" value="{{ next|default('') }}" />
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">Username or email</span>
-        <input name="username" required autofocus autocomplete="username"
-               value="{{ values.username if values else '' }}"
-               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-400" />
-      </label>
-      <label class="grid gap-1.5">
-        <span class="text-sm font-medium">Password</span>
-        <input type="password" name="password" required autocomplete="current-password"
-               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-fuchsia-400" />
-      </label>
-      <button class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600 text-white font-medium shadow hover:opacity-95">Sign in</button>
-    </form>
-
-    <div class="mt-5 flex justify-between text-sm">
-      <a href="/forgot-password" class="text-slate-500 dark:text-slate-400 hover:underline">Forgot password?</a>
-      <a href="/register" class="text-sky-700 dark:text-sky-400 hover:underline">Create an account</a>
-    </div>
+<div class="max-w-sm mx-auto pt-6">
+  <div class="text-center mb-6">
+    <h1 class="page-title">Welcome back</h1>
+    <p class="page-subtitle">Sign in to your application tracker.</p>
   </div>
+
+  <div class="card card-body">
+    {% if error %}<div class="alert alert-error mb-4">{{ ui.icon('alert', 16) }}<span>{{ error }}</span></div>{% endif %}
+
+    <form method="post" action="/login" class="grid grid-cols-1 gap-4">
+      <input type="hidden" name="next" value="{{ next|default('') }}" />
+      <label class="field">
+        <span class="label">Username or email</span>
+        <input name="username" required autofocus autocomplete="username" class="input"
+               value="{{ values.username if values else '' }}" />
+      </label>
+      <label class="field">
+        <span class="flex justify-between">
+          <span class="label">Password</span>
+          <a href="/forgot-password" class="text-xs link-muted">Forgot password?</a>
+        </span>
+        <input type="password" name="password" required autocomplete="current-password" class="input" />
+      </label>
+      <button class="btn btn-primary btn-block mt-1">Sign in</button>
+    </form>
+  </div>
+
+  <p class="mt-5 text-center text-sm text-muted">
+    New here? <a href="/register" class="link font-medium">Create an account</a>
+  </p>
 </div>
 {% endblock %}

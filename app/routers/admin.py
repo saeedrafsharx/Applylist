@@ -4,7 +4,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
@@ -32,7 +32,7 @@ from ..models import (
 )
 from ..services.audit import Action, activity_counts_by_day, log_activity
 from ..services.billing import active_subscription, grant_subscription, revoke_subscription
-from ..services.scraper import run_source
+from ..services.scraper.runner import expire_stale_runs, is_running, run_in_background
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -904,21 +904,25 @@ def delete_job_title(
 
 @router.get("/scraper")
 def scraper_home(request: Request, db: Session = Depends(get_db)):
+    expire_stale_runs(db)
     sources = list(db.execute(select(ScrapeSource).order_by(ScrapeSource.label)).scalars())
     runs = list(
         db.execute(
             select(ScrapeRun).order_by(ScrapeRun.started_at.desc()).limit(50)
         ).scalars()
     )
-    from ..services.scraper import PARSERS
+    from ..services.scraper.parsers import PARSER_HELP, PARSERS
 
+    running_keys = {r.source_key for r in runs if r.status == ScrapeRun.STATUS_RUNNING}
     return render(
         request,
         "admin/scraper.html",
         {
             "sources": sources,
             "runs": runs,
-            "parsers": sorted(PARSERS),
+            "running_keys": running_keys,
+            "parsers": list(PARSERS),
+            "parser_help": PARSER_HELP,
             "user_agent": settings.scraper_user_agent,
             "respect_robots": settings.scraper_respect_robots,
         },
@@ -931,16 +935,21 @@ def create_source(
     key: str = Form(...),
     label: str = Form(...),
     start_url: str = Form(...),
-    parser: str = Form("mailto_directory"),
+    parser: str = Form("auto"),
     university_slug: str = Form(...),
     notes: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    from ..services.scraper.parsers import PARSERS
+
     existing = db.execute(
         select(ScrapeSource).where(ScrapeSource.key == key.strip())
     ).scalar_one_or_none()
     if existing is not None:
         set_flash(request, f"A source with key {key!r} already exists.", "warning")
+        return RedirectResponse("/admin/scraper", status_code=303)
+    if parser not in PARSERS:
+        set_flash(request, f"Unknown parser {parser!r}.", "error")
         return RedirectResponse("/admin/scraper", status_code=303)
 
     db.add(
@@ -954,7 +963,7 @@ def create_source(
             enabled=True,
         )
     )
-    set_flash(request, f"Added source {label.strip()}.", "success")
+    set_flash(request, f"Added source {label.strip()}. Try a dry run first to check what it finds.", "success")
     return RedirectResponse("/admin/scraper", status_code=303)
 
 
@@ -963,6 +972,19 @@ def toggle_source(request: Request, source_id: int, db: Session = Depends(get_db
     source = db.get(ScrapeSource, source_id)
     if source is not None:
         source.enabled = not source.enabled
+    return RedirectResponse("/admin/scraper", status_code=303)
+
+
+@router.post("/scraper/sources/{source_id}/parser")
+def change_parser(
+    request: Request, source_id: int, parser: str = Form(...), db: Session = Depends(get_db)
+):
+    from ..services.scraper.parsers import PARSERS
+
+    source = db.get(ScrapeSource, source_id)
+    if source is not None and parser in PARSERS:
+        source.parser = parser
+        set_flash(request, f"{source.label} now uses the {parser} parser.", "success")
     return RedirectResponse("/admin/scraper", status_code=303)
 
 
@@ -978,48 +1000,66 @@ def delete_source(request: Request, source_id: int, db: Session = Depends(get_db
 @router.post("/scraper/run/{source_id}")
 def trigger_run(
     request: Request,
+    background: BackgroundTasks,
     source_id: int,
     dry_run: Optional[str] = Form(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """
-    Run one source synchronously.
+    Start a crawl of one source in the background.
 
-    This blocks the request for as long as the crawl takes — deliberately, since
-    the fetcher is rate-limited and an admin triggering it should see the result
-    rather than have it disappear into a worker we don't have.
+    A polite crawl takes minutes (sites commonly set Crawl-delay: 10), far longer
+    than a reverse proxy will hold a request open, so it runs after the response
+    is sent. The scraper page refreshes itself until the run finishes.
     """
     source = db.get(ScrapeSource, source_id)
     if source is None:
         return RedirectResponse("/admin/scraper", status_code=303)
+    if is_running(db, source.key):
+        set_flash(request, f"{source.label} is already running.", "warning")
+        return RedirectResponse("/admin/scraper", status_code=303)
 
-    run = run_source(
-        db, source, triggered_by_user_id=admin.id, dry_run=dry_run is not None
-    )
+    is_dry = dry_run is not None
+    background.add_task(run_in_background, [source.id], admin.id, is_dry)
     log_activity(
         db, Action.ADMIN_SCRAPE_TRIGGERED, user_id=admin.id, request=request,
         target_type="scrape_source", target_id=source.id,
-        summary=f"Ran {source.key}: {run.status}",
-        detail={
-            "created": run.records_created,
-            "updated": run.records_updated,
-            "found": run.records_found,
-            "pages": run.pages_fetched,
-        },
+        summary=f"Started {'dry run of ' if is_dry else ''}{source.key}",
     )
+    set_flash(
+        request,
+        f"Started {'a dry run of ' if is_dry else ''}{source.label}. "
+        "This page refreshes until it finishes.",
+        "info",
+    )
+    return RedirectResponse("/admin/scraper", status_code=303)
 
-    if run.status == ScrapeRun.STATUS_SUCCESS:
-        set_flash(
-            request,
-            f"{source.label}: {run.records_found} found, {run.records_created} new, "
-            f"{run.records_updated} updated ({run.pages_fetched} pages).",
-            "success",
-        )
-    elif run.status == ScrapeRun.STATUS_BLOCKED:
-        set_flash(request, f"Blocked by robots.txt: {run.error}", "warning")
-    else:
-        set_flash(request, f"Run failed: {run.error}", "error")
+
+@router.post("/scraper/run-all")
+def trigger_all(
+    request: Request,
+    background: BackgroundTasks,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Crawl every enabled source, one after another, in the background."""
+    sources = [
+        s for s in db.execute(
+            select(ScrapeSource).where(ScrapeSource.enabled.is_(True)).order_by(ScrapeSource.label)
+        ).scalars()
+        if not is_running(db, s.key)
+    ]
+    if not sources:
+        set_flash(request, "No enabled sources to run.", "warning")
+        return RedirectResponse("/admin/scraper", status_code=303)
+
+    background.add_task(run_in_background, [s.id for s in sources], admin.id, False)
+    log_activity(
+        db, Action.ADMIN_SCRAPE_TRIGGERED, user_id=admin.id, request=request,
+        target_type="scrape_source", summary=f"Started all enabled sources ({len(sources)})",
+    )
+    set_flash(request, f"Started {len(sources)} source(s). They run one after another.", "info")
     return RedirectResponse("/admin/scraper", status_code=303)
 
 
