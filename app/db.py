@@ -1,31 +1,48 @@
 from __future__ import annotations
-import os
-from pathlib import Path
+
+from contextlib import contextmanager
+from typing import Iterator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-DB_OVERRIDE = os.getenv("CONTACT_DB")
-if DB_OVERRIDE:
-    DB_PATH = DB_OVERRIDE
-else:
-    DB_PATH = str(Path(__file__).resolve().parent.parent / "contact_tracker.db")
-
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+from .config import settings
 
 engine = create_engine(
-    DATABASE_URL,
+    settings.database_url,
     future=True,
-    echo=False,
+    echo=settings.db_echo,
     pool_pre_ping=True,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_recycle=1800,
 )
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False, future=True)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+    future=True,
+)
 
-# FastAPI dependency
-from contextlib import contextmanager
 
 @contextmanager
-def session_scope():
+def session_scope() -> Iterator[Session]:
+    """Commit on clean exit, roll back on exception, always close."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def get_db() -> Iterator[Session]:
+    """FastAPI dependency mirroring `session_scope`."""
     session = SessionLocal()
     try:
         yield session

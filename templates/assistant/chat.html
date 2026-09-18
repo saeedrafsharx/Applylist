@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ conversation.title }} · Assistant{% endblock %}
+{% block content %}
+<div class="grid lg:grid-cols-[16rem_1fr] gap-5">
+
+  <!-- Sidebar -->
+  <aside class="lg:sticky lg:top-24 lg:self-start grid gap-3">
+    <a href="/assistant/new" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium text-center shadow hover:opacity-95">New conversation</a>
+    <a href="/assistant/draft" class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-center hover:bg-slate-50 dark:hover:bg-slate-800">Draft an email</a>
+
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <div class="px-4 py-2.5 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">Recent</div>
+      <div class="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+        {% for c in conversations %}
+          <a href="/assistant/c/{{ c.id }}"
+             class="block px-4 py-2.5 text-sm truncate {% if c.id == conversation.id %}bg-violet-50 dark:bg-violet-950/40 font-medium{% else %}hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+            {{ c.title }}
+            <span class="block text-xs text-slate-400">{{ c.updated_at | dt('%b %d') }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">This month</div>
+      <div class="mt-1 text-sm"><strong>{{ used }}</strong> of {{ quota }} messages</div>
+      <div class="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-violet-500 to-purple-600" style="width: {{ (100 * used / quota) if quota else 0 }}%"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Thread -->
+  <section class="grid gap-4 min-w-0">
+    <div class="flex items-center justify-between gap-3">
+      <h1 class="text-xl font-semibold truncate">{{ conversation.title }}</h1>
+      <form action="/assistant/c/{{ conversation.id }}/archive" method="post">
+        <button class="text-sm text-slate-500 dark:text-slate-400 hover:underline">Archive</button>
+      </form>
+    </div>
+
+    {% if not ai_configured %}
+      <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-sm">
+        <strong>The assistant isn't configured on this server.</strong>
+        Set <code class="font-mono">ANTHROPIC_API_KEY</code> to enable it.
+      </div>
+    {% endif %}
+
+    <div class="grid gap-4">
+      {% if not messages %}
+        <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center">
+          <div class="text-4xl mb-3">💬</div>
+          <p class="font-medium">Ask anything about your applications</p>
+          <div class="mt-4 grid sm:grid-cols-2 gap-2 max-w-xl mx-auto text-left text-sm">
+            {% for prompt in [
+              'Write a first email to a professor working on computational neuroimaging.',
+              'My email got no reply after three weeks. Write a follow-up.',
+              'What should a PhD statement of purpose actually contain?',
+              'Review this draft and tell me what is weak: …'
+            ] %}
+              <button type="button" onclick="document.getElementById('msg').value = this.textContent.trim(); document.getElementById('msg').focus();"
+                      class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-left">{{ prompt }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% for m in messages %}
+        <div id="{{ 'latest' if loop.last else '' }}" class="flex {{ 'justify-end' if m.role == 'user' else 'justify-start' }}">
+          <div class="max-w-[46rem] rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-relaxed
+                      {% if m.role == 'user' %}bg-gradient-to-r from-sky-600 to-indigo-600 text-white
+                      {% else %}bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800{% endif %}">
+{{ m.content }}
+            {% if m.role != 'user' %}
+              <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex gap-3 text-xs text-slate-400">
+                <span>{{ m.created_at | dt('%H:%M') }}</span>
+                {% if m.output_tokens %}<span>{{ m.output_tokens }} tokens</span>{% endif %}
+                <button type="button" class="hover:underline copy-btn">Copy</button>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <form method="post" action="/assistant/c/{{ conversation.id }}/send"
+          class="sticky bottom-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-lg">
+      <textarea id="msg" name="message" rows="3" required
+                placeholder="Ask a question, or paste a draft for review…"
+                class="w-full px-3 py-2 rounded-lg bg-transparent resize-y focus:outline-none"></textarea>
+      <div class="flex items-center justify-between gap-3 mt-1">
+        <span class="text-xs text-slate-400">Ctrl + Enter to send</span>
+        <button class="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium shadow hover:opacity-95">Send</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const box = document.getElementById('msg');
+  box?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') box.form.requestSubmit();
+  });
+  document.querySelectorAll('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const bubble = btn.closest('div').parentElement;
+      const text = Array.from(bubble.childNodes)
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => n.textContent)
+        .join('')
+        .trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = 'Copied';
+        setTimeout(() => (btn.textContent = 'Copy'), 1500);
+      } catch (e) {
+        btn.textContent = 'Press Ctrl+C';
+      }
+    });
+  });
+  if (location.hash === '#latest') document.getElementById('latest')?.scrollIntoView({ block: 'center' });
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-8">
+  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7 text-center">
+    <div class="text-4xl mb-3">✉️</div>
+    <h1 class="text-2xl font-semibold grad-text mb-2">Confirm your email</h1>
+
+    {% if error %}
+      <div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm text-left">{{ error }}</div>
+    {% else %}
+      <p class="text-slate-600 dark:text-slate-300">
+        We sent a link to <strong>{{ user.email if user else 'your address' }}</strong>.
+        Click it to unlock your dashboards.
+      </p>
+    {% endif %}
+
+    {% if not email_enabled %}
+      <div class="mt-5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-sm text-left">
+        <strong>Mail isn't configured on this server.</strong>
+        The confirmation link was written to the application log instead of being
+        sent. Set <code class="font-mono">SMTP_HOST</code> to deliver real email.
+      </div>
+    {% endif %}
+
+    {% if user %}
+    <form method="post" action="/verify-email/resend" class="mt-6">
+      <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-medium shadow hover:opacity-95">
+        Send it again
+      </button>
+    </form>
+    <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+      Check your spam folder before requesting another. Links expire after
+      {{ settings.email_verification_ttl_hours }} hours.
+    </p>
+    {% else %}
+      <a href="/login" class="inline-block mt-6 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-medium">Sign in</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

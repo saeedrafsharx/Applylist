@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Plans · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid gap-5">
+  <p class="text-sm text-slate-500 dark:text-slate-400">
+    Prices are entered in <strong>Toman</strong> and stored in Rial, which is what Zarinpal expects.
+    Leave duration blank for a lifetime plan.
+  </p>
+
+  {% for p in plans %}
+  <form method="post" action="/admin/plans/{{ p.id }}"
+        class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 grid gap-4">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <span class="font-semibold text-lg">{{ p.name }}</span>
+        <span class="ml-2 font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{{ p.code }}</span>
+      </div>
+      <span class="text-sm text-slate-500 dark:text-slate-400">{{ counts.get(p.id, 0) }} active subscriber{{ '' if counts.get(p.id, 0) == 1 else 's' }}</span>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <label class="grid gap-1">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Name</span>
+        <input name="name" value="{{ p.name }}" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Price (Toman)</span>
+        <input name="price_toman" type="number" min="0" value="{{ p.price_toman }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Duration (days)</span>
+        <input name="duration_days" value="{{ p.duration_days or '' }}" placeholder="blank = lifetime" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-xs text-slate-500 dark:text-slate-400">AI messages / month</span>
+        <input name="ai_monthly_quota" value="{{ p.ai_monthly_quota or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+      <label class="grid gap-1 sm:col-span-2 lg:col-span-3">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Description</span>
+        <input name="description" value="{{ p.description or '' }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Sort order</span>
+        <input name="sort_order" type="number" value="{{ p.sort_order }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+      </label>
+    </div>
+
+    <div class="flex flex-wrap gap-5 items-center">
+      {% for name, label, checked in [
+          ('grants_catalog', 'Grants database access', p.grants_catalog),
+          ('grants_ai', 'Grants AI assistant', p.grants_ai),
+          ('is_active', 'Shown on the pricing page', p.is_active)] %}
+        <label class="inline-flex items-center gap-2">
+          <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+          <span class="text-sm">{{ label }}</span>
+        </label>
+      {% endfor %}
+      <button class="ml-auto px-4 py-2 rounded-xl bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-sm font-medium">Save</button>
+    </div>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

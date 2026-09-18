@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Activity · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid gap-4">
+  <form method="get" action="/admin/activity" class="flex flex-wrap gap-2 items-end">
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Search</span>
+      <input name="q" value="{{ q }}" placeholder="summary, IP, path" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-56" />
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Action</span>
+      <select name="action" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+        <option value="">All</option>
+        {% for a in actions %}<option value="{{ a }}" {% if a == action %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select>
+    </label>
+    {% if user_id %}<input type="hidden" name="user_id" value="{{ user_id }}" />{% endif %}
+    <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Filter</button>
+    {% if q or action or user_id %}<a href="/admin/activity" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">Clear</a>{% endif %}
+    <span class="ml-auto text-sm text-slate-500 dark:text-slate-400">{{ "{:,}".format(total) }} events</span>
+  </form>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
+          <th class="px-4 py-3">When</th><th class="px-4 py-3">Action</th><th class="px-4 py-3">User</th>
+          <th class="px-4 py-3">Summary</th><th class="px-4 py-3">IP</th><th class="px-4 py-3">Path</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for a in rows %}
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+            <td class="px-4 py-2.5 whitespace-nowrap text-slate-500 dark:text-slate-400">{{ a.created_at | dt }}</td>
+            <td class="px-4 py-2.5"><span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{{ a.action }}</span></td>
+            <td class="px-4 py-2.5">{% if a.user %}<a href="/admin/users/{{ a.user.id }}" class="text-sky-700 dark:text-sky-400 hover:underline">{{ a.user.username }}</a>{% else %}<span class="text-slate-400">—</span>{% endif %}</td>
+            <td class="px-4 py-2.5 text-slate-600 dark:text-slate-300 max-w-md">{{ a.summary or '' }}</td>
+            <td class="px-4 py-2.5 font-mono text-xs text-slate-400">{{ a.ip or '—' }}</td>
+            <td class="px-4 py-2.5 font-mono text-xs text-slate-400">{{ a.path or '—' }}</td>
+          </tr>
+          {% else %}
+            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No events match that filter.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% with base='/admin/activity', params='q=' ~ q ~ '&action=' ~ action ~ '&user_id=' ~ user_id ~ '&' %}
+    {% include "partials/pagination.html" %}
+  {% endwith %}
+</div>
+{% endblock %}

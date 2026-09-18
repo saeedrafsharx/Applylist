@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Sign in · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-8">
+  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7">
+    <h1 class="text-2xl font-semibold grad-text mb-1">Welcome back</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Sign in to your application tracker.</p>
+
+    {% if error %}<div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm">{{ error }}</div>{% endif %}
+
+    <form method="post" action="/login" class="grid gap-4">
+      <input type="hidden" name="next" value="{{ next|default('') }}" />
+      <label class="grid gap-1.5">
+        <span class="text-sm font-medium">Username or email</span>
+        <input name="username" required autofocus autocomplete="username"
+               value="{{ values.username if values else '' }}"
+               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      </label>
+      <label class="grid gap-1.5">
+        <span class="text-sm font-medium">Password</span>
+        <input type="password" name="password" required autocomplete="current-password"
+               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-fuchsia-400" />
+      </label>
+      <button class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600 text-white font-medium shadow hover:opacity-95">Sign in</button>
+    </form>
+
+    <div class="mt-5 flex justify-between text-sm">
+      <a href="/forgot-password" class="text-slate-500 dark:text-slate-400 hover:underline">Forgot password?</a>
+      <a href="/register" class="text-sky-700 dark:text-sky-400 hover:underline">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,28 +1,55 @@
 {% extends "base.html" %}
+{% block title %}Your dashboard · ApplyList{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto mt-12">
-  <h1 class="text-3xl font-semibold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600">
-    What do you want to track?
-  </h1>
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-3xl font-semibold text-center mb-2 grad-text">What do you want to work on?</h1>
+  <p class="text-center text-slate-500 dark:text-slate-400 mb-8">
+    {% if counts.contacts %}
+      {{ counts.contacts }} contact{{ '' if counts.contacts == 1 else 's' }} tracked ·
+      {{ counts.emailed }} emailed · {{ counts.positions }} position{{ '' if counts.positions == 1 else 's' }}
+    {% else %}
+      Start by adding the first professor you want to reach.
+    {% endif %}
+  </p>
 
-  <div class="grid gap-6">
-    <a href="/professors"
-       class="p-8 text-center rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-2xl font-semibold shadow hover:opacity-90">
-      Professors
-      <div class="mt-2 text-sm font-normal text-sky-100/90">Your current dashboard</div>
+  <div class="grid sm:grid-cols-2 gap-5">
+    <a href="/professors" class="group p-7 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-600 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+      <div class="text-2xl font-semibold">Professors</div>
+      <p class="mt-2 text-sm text-sky-100/90">Who you've contacted, who still owes you a reply.</p>
+      <div class="mt-4 text-3xl font-bold">{{ counts.contacts }}</div>
     </a>
 
-    <a href="/positions"
-       class="p-8 text-center rounded-2xl bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white text-2xl font-semibold shadow hover:opacity-90">
-      Positions
-      <div class="mt-2 text-sm font-normal text-rose-100/90">Fellowships, PhD calls, RA posts</div>
+    <a href="/positions" class="group p-7 rounded-2xl bg-gradient-to-br from-fuchsia-600 to-rose-600 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+      <div class="text-2xl font-semibold">Positions</div>
+      <p class="mt-2 text-sm text-rose-100/90">Fellowships, PhD calls, RA posts and their deadlines.</p>
+      <div class="mt-4 text-3xl font-bold">{{ counts.positions }}</div>
     </a>
 
-    <a href="#"
-       class="p-8 text-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-2xl font-semibold shadow opacity-70 cursor-not-allowed">
-      Coming Soon
-      <div class="mt-2 text-sm font-normal text-emerald-100/90">Database</div>
+    <a href="/database" class="group p-7 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl font-semibold">Database</span>
+        {% if not can_catalog %}<span class="px-2 py-0.5 rounded-full bg-white/25 text-xs font-medium">Pro</span>{% endif %}
+      </div>
+      <p class="mt-2 text-sm text-emerald-100/90">Search supervisors and role titles across universities.</p>
+    </a>
+
+    <a href="/assistant" class="group p-7 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl font-semibold">Assistant</span>
+        {% if not can_ai %}<span class="px-2 py-0.5 rounded-full bg-white/25 text-xs font-medium">Pro</span>{% endif %}
+      </div>
+      <p class="mt-2 text-sm text-violet-100/90">Draft outreach emails and ask application questions.</p>
     </a>
   </div>
+
+  {% if not is_paid %}
+  <div class="mt-8 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <div class="font-medium">Unlock the database and the AI assistant</div>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Everything you track stays free. Pro adds the shared catalog and email drafting.</p>
+    </div>
+    <a href="/pricing" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white font-medium shrink-0">See plans</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

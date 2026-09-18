@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Create your account · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-8">
+  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7">
+    <h1 class="text-2xl font-semibold grad-text mb-1">Create your account</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Free forever for tracking your own contacts and positions.</p>
+
+    {% if error %}<div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 text-sm">{{ error }}</div>{% endif %}
+
+    <form method="post" action="/register" class="grid gap-4">
+      <label class="grid gap-1.5">
+        <span class="text-sm font-medium">Username</span>
+        <input name="username" required autofocus value="{{ values.username if values else '' }}"
+               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      </label>
+      <label class="grid gap-1.5">
+        <span class="text-sm font-medium">Email</span>
+        <input type="email" name="email" required value="{{ values.email if values else '' }}"
+               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-fuchsia-400" />
+        <span class="text-xs text-slate-500 dark:text-slate-400">We'll send a confirmation link here.</span>
+      </label>
+      <label class="grid gap-1.5">
+        <span class="text-sm font-medium">Full name <span class="font-normal text-slate-400">(optional)</span></span>
+        <input name="full_name" value="{{ values.full_name if values else '' }}"
+               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+      </label>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium">Password</span>
+          <input type="password" name="password" required minlength="8" autocomplete="new-password"
+                 class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium">Confirm</span>
+          <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password"
+                 class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+        </label>
+      </div>
+      <button class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600 text-white font-medium shadow hover:opacity-95">Create account</button>
+    </form>
+
+    <p class="mt-5 text-sm text-slate-500 dark:text-slate-400">
+      Already registered? <a href="/login" class="text-sky-700 dark:text-sky-400 hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Remove a listing · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-6">
+  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7">
+    {% if submitted %}
+      <div class="text-4xl mb-3 text-center">✅</div>
+      <h1 class="text-xl font-semibold grad-text mb-2 text-center">Request received</h1>
+      <p class="text-sm text-slate-600 dark:text-slate-300 text-center">
+        The entry has been hidden from search straight away, and a person will review the
+        request. You don't need to do anything else.
+      </p>
+      <a href="/" class="block text-center mt-6 text-sky-700 dark:text-sky-400 hover:underline text-sm">Back home</a>
+    {% else %}
+      <h1 class="text-2xl font-semibold grad-text mb-2">Remove a listing</h1>
+      <p class="text-sm text-slate-600 dark:text-slate-300 mb-6">
+        Our catalog mirrors faculty directories that universities publish themselves. If you're
+        listed and would rather not be, tell us and we'll take the entry down — no account needed.
+      </p>
+
+      <form method="post" action="/database/takedown" class="grid gap-4">
+        <input type="hidden" name="professor_id" value="{{ entry.id if entry else 0 }}" />
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium">Name as listed</span>
+          <input name="subject_name" required value="{{ entry.name if entry else '' }}"
+                 class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium">Your email <span class="font-normal text-slate-400">(optional)</span></span>
+          <input type="email" name="requester_email"
+                 class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
+          <span class="text-xs text-slate-500 dark:text-slate-400">Only so we can confirm it's done.</span>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-sm font-medium">Anything you want to add <span class="font-normal text-slate-400">(optional)</span></span>
+          <textarea name="reason" rows="3" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"></textarea>
+        </label>
+        <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white font-medium shadow hover:opacity-95">Submit request</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

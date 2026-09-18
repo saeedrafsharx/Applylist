@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Users · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid gap-4">
+  <form method="get" action="/admin/users" class="flex flex-wrap gap-2 items-end">
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Search</span>
+      <input name="q" value="{{ q }}" placeholder="username, email, name" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-56" />
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Plan</span>
+      <select name="plan" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+        <option value="">Any</option>
+        <option value="free" {% if plan == 'free' %}selected{% endif %}>Free (no subscription)</option>
+        {% for p in plans %}<option value="{{ p.code }}" {% if p.code == plan %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">State</span>
+      <select name="state" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+        <option value="">Any</option>
+        {% for v, l in [('unverified','Unverified email'), ('suspended','Suspended'), ('admin','Admins')] %}
+          <option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Filter</button>
+    {% if q or plan or state %}<a href="/admin/users" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">Clear</a>{% endif %}
+    <span class="ml-auto text-sm text-slate-500 dark:text-slate-400">{{ "{:,}".format(total) }} users</span>
+  </form>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
+          <th class="px-4 py-3">User</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Plan</th>
+          <th class="px-4 py-3">Joined</th><th class="px-4 py-3">Last seen</th><th class="px-4 py-3">Flags</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for u in rows %}
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+            <td class="px-4 py-3">
+              <a href="/admin/users/{{ u.id }}" class="font-medium text-sky-700 dark:text-sky-400 hover:underline">{{ u.username }}</a>
+              {% if u.full_name %}<div class="text-xs text-slate-500 dark:text-slate-400">{{ u.full_name }}</div>{% endif %}
+            </td>
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ u.email }}</td>
+            <td class="px-4 py-3">
+              {% set s = subs.get(u.id) %}
+              {% if s and s.is_active %}
+                <span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 text-xs font-medium">{{ s.plan.name }}</span>
+                {% if s.expires_at %}<div class="text-xs text-slate-400 mt-0.5">{{ s.days_remaining }}d left</div>{% endif %}
+              {% else %}
+                <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs">Free</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ u.created_at | dt('%Y-%m-%d') }}</td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ u.last_seen_at | dt('%Y-%m-%d %H:%M') if u.last_seen_at else '—' }}</td>
+            <td class="px-4 py-3">
+              <div class="flex gap-1 flex-wrap">
+                {% if u.is_admin %}<span class="px-2 py-0.5 rounded-full bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-800 dark:text-fuchsia-200 text-xs">admin</span>{% endif %}
+                {% if not u.is_active %}<span class="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 text-xs">suspended</span>{% endif %}
+                {% if not u.is_email_verified %}<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 text-xs">unverified</span>{% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No users match that filter.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% with base='/admin/users', params='q=' ~ q ~ '&plan=' ~ plan ~ '&state=' ~ state ~ '&' %}
+    {% include "partials/pagination.html" %}
+  {% endwith %}
+</div>
+{% endblock %}

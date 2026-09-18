@@ -3,30 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ApplyList</title>
+    <title>{% block title %}ApplyList{% endblock %}</title>
+    <meta name="description" content="{% block description %}Track professors, labs and open positions while you apply for graduate school and research jobs.{% endblock %}" />
 
-    <!-- Tailwind config BEFORE loading -->
     <script>
-      tailwind = {
-        config: {
-          darkMode: 'class',
-        }
-      };
+      tailwind = { config: { darkMode: 'class' } };
     </script>
-
-    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Apply saved theme BEFORE page renders -->
     <script>
+      // Applied before first paint so the page never flashes the wrong theme.
       (() => {
-        const ls = localStorage.getItem('theme');
-        const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (ls === 'dark' || (!ls && prefers)) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        try {
+          const saved = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', saved === 'dark' || (!saved && prefersDark));
+        } catch (e) { /* private mode - fall back to light */ }
       })();
     </script>
 
@@ -40,57 +32,100 @@
         pointer-events: none;
       }
       .gradient-card > * { position: relative; z-index: 1; }
+      .grad-text {
+        background-image: linear-gradient(90deg, #0284c7, #c026d3, #059669);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      [x-cloak] { display: none !important; }
     </style>
+    {% block head %}{% endblock %}
   </head>
 
-  <body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100
-               dark:from-slate-950 dark:via-slate-950 dark:to-black dark:text-slate-100">
+  <body class="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100
+               text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-black dark:text-slate-100">
 
-    <!-- HEADER -->
-    <header class="sticky top-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    {% set u = user if user is defined and user else request.state.user %}
 
-        <a href="/" class="text-xl font-semibold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-600 via-sky-600 to-emerald-600">
-          ApplyList
-        </a>
+    <header class="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <a href="/" class="text-xl font-semibold tracking-tight grad-text shrink-0">ApplyList</a>
 
-        {% set u = user if user is defined else request.state.user %}
-        <nav class="flex items-center gap-4 text-sm">
+        {% if u %}
+        <nav class="hidden md:flex items-center gap-1 text-sm">
+          {% set nav = [('/professors','Professors'), ('/positions','Positions'), ('/database','Database'), ('/assistant','Assistant')] %}
+          {% for href, label in nav %}
+            <a href="{{ href }}"
+               class="px-3 py-1.5 rounded-lg transition
+                      {% if request.url.path.startswith(href) %}bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-medium
+                      {% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+              {{ label }}
+            </a>
+          {% endfor %}
+          {% if u.is_admin %}
+            <a href="/admin"
+               class="px-3 py-1.5 rounded-lg transition
+                      {% if request.url.path.startswith('/admin') %}bg-fuchsia-600 text-white font-medium
+                      {% else %}text-fuchsia-700 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40{% endif %}">
+              Admin
+            </a>
+          {% endif %}
+        </nav>
+        {% endif %}
 
-          <a href="/professors" class="text-slate-700 dark:text-slate-200 hover:underline">Professors</a>
-          <a href="/positions" class="text-slate-700 dark:text-slate-200 hover:underline">Positions</a>
-
-          <!-- Theme toggle -->
-          <button id="themeToggle" title="Toggle theme"
-                  class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700
+        <div class="flex items-center gap-2 text-sm shrink-0">
+          <button id="themeToggle" title="Toggle light / dark"
+                  class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700
                          hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <span id="iconSun" class="hidden dark:inline">Day</span>
-            <span id="iconMoon" class="inline dark:hidden">Night</span>
+            <span class="hidden dark:inline">☀</span><span class="inline dark:hidden">☾</span>
           </button>
 
           {% if u %}
-            <span class="text-slate-600 dark:text-slate-300">Hi, {{ u.username }}</span>
+            {% if not u.is_email_verified %}
+              <a href="/verify-email" class="hidden sm:inline px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 text-xs font-medium">Verify email</a>
+            {% endif %}
+            <a href="/billing" class="hidden sm:inline text-slate-600 dark:text-slate-300 hover:underline">{{ u.username }}</a>
             <form action="/logout" method="post">
-              <button class="px-3 py-1 rounded-lg bg-gradient-to-r from-rose-500 to-orange-500 text-white">Logout</button>
+              <button class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-orange-500 text-white">Sign out</button>
             </form>
           {% else %}
-            <a class="px-3 py-1 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 text-white" href="/login">Login</a>
-            <a class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700" href="/register">Register</a>
+            <a class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 text-white" href="/login">Sign in</a>
+            <a class="hidden sm:inline px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700" href="/register">Register</a>
           {% endif %}
-        </nav>
+        </div>
       </div>
+
+      {% if u %}
+      <nav class="md:hidden flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm">
+        {% for href, label in [('/professors','Professors'), ('/positions','Positions'), ('/database','Database'), ('/assistant','Assistant')] %}
+          <a href="{{ href }}" class="px-3 py-1 rounded-lg whitespace-nowrap
+             {% if request.url.path.startswith(href) %}bg-slate-900 text-white dark:bg-white dark:text-slate-900{% else %}text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">{{ label }}</a>
+        {% endfor %}
+        {% if u.is_admin %}<a href="/admin" class="px-3 py-1 rounded-lg whitespace-nowrap text-fuchsia-700 dark:text-fuchsia-400 border border-fuchsia-200 dark:border-fuchsia-800">Admin</a>{% endif %}
+      </nav>
+      {% endif %}
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-4">
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+      {% include "partials/flash.html" %}
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="max-w-7xl mx-auto px-4 py-10 text-xs text-slate-500 dark:text-slate-400">
-      Built by Saeid, Enjoy.
-    </nav>
-  </div>
-</header>
+    <footer class="border-t border-slate-200 dark:border-slate-800 mt-8">
+      <div class="max-w-7xl mx-auto px-4 py-6 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-5 gap-y-2 justify-between">
+        <span>ApplyList · built for students applying to grad school</span>
+        <span class="flex gap-4">
+          <a href="/pricing" class="hover:underline">Pricing</a>
+          <a href="/database/takedown" class="hover:underline">Remove my listing</a>
+        </span>
+      </div>
+    </footer>
 
-
+    <script>
+      document.getElementById('themeToggle')?.addEventListener('click', () => {
+        const dark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+      });
+    </script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

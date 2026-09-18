@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Scraper · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid gap-5">
+  <div class="rounded-2xl border border-sky-200 dark:border-sky-900 bg-sky-50/60 dark:bg-sky-950/20 p-5 text-sm">
+    <h2 class="font-semibold text-sky-900 dark:text-sky-200">How this crawler behaves</h2>
+    <ul class="mt-2 grid gap-1 text-sky-800 dark:text-sky-300">
+      <li>• Identifies itself as <code class="font-mono text-xs">{{ user_agent }}</code></li>
+      <li>• {% if respect_robots %}Reads and obeys <code class="font-mono text-xs">robots.txt</code>, including Crawl-delay{% else %}<strong class="text-rose-600 dark:text-rose-400">robots.txt checking is DISABLED</strong> — turn SCRAPER_RESPECT_ROBOTS back on{% endif %}</li>
+      <li>• Waits {{ settings.scraper_delay_seconds }}s between requests to the same host, max {{ settings.scraper_max_pages }} pages per run</li>
+      <li>• Records the source URL and timestamp on every entry, so each row can be traced back and re-checked</li>
+      <li>• Never resurrects an entry that was taken down</li>
+    </ul>
+    <p class="mt-3 text-xs text-sky-700 dark:text-sky-400">
+      Only point this at faculty directories a university publishes openly. Check each page still
+      exists before enabling its source — a redesign usually means a run that quietly finds nothing.
+    </p>
+  </div>
+
+  <!-- Sources -->
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold">Sources</div>
+    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      {% for s in sources %}
+      <div class="px-5 py-4 flex flex-wrap items-center gap-3">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-medium">{{ s.label }}</span>
+            <code class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{{ s.key }}</code>
+            <span class="text-xs px-2 py-0.5 rounded-full {% if s.enabled %}bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200{% else %}bg-slate-200 dark:bg-slate-700{% endif %}">
+              {{ 'enabled' if s.enabled else 'disabled' }}
+            </span>
+          </div>
+          <a href="{{ s.start_url }}" target="_blank" rel="noopener" class="text-xs text-slate-500 dark:text-slate-400 hover:underline break-all">{{ s.start_url }}</a>
+          <div class="text-xs text-slate-400 mt-0.5">
+            parser <code class="font-mono">{{ s.parser }}</code> → {{ s.university_slug }}
+            {% if s.last_run_at %} · last run {{ s.last_run_at | dt }}{% else %} · never run{% endif %}
+          </div>
+          {% if s.notes %}<div class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ s.notes }}</div>{% endif %}
+        </div>
+
+        <div class="flex gap-2 items-center">
+          {% if s.enabled %}
+          <form method="post" action="/admin/scraper/run/{{ s.id }}" class="flex gap-2 items-center"
+                onsubmit="this.querySelectorAll('button').forEach(b => { b.disabled = true; b.textContent = 'Running…'; })">
+            <label class="inline-flex items-center gap-1.5 text-xs">
+              <input type="checkbox" name="dry_run" class="h-3.5 w-3.5 rounded border-slate-300" />
+              <span>dry run</span>
+            </label>
+            <button class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white text-sm font-medium disabled:opacity-60">Run now</button>
+          </form>
+          {% endif %}
+          <form method="post" action="/admin/scraper/sources/{{ s.id }}/toggle">
+            <button class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm">{{ 'Disable' if s.enabled else 'Enable' }}</button>
+          </form>
+          <form method="post" action="/admin/scraper/sources/{{ s.id }}/delete" onsubmit="return confirm('Delete this source? Records already collected are kept.')">
+            <button class="px-2 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 text-sm hover:underline">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+        <div class="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No sources configured.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Add source -->
+  <form method="post" action="/admin/scraper/sources" class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 grid sm:grid-cols-2 gap-3">
+    <div class="sm:col-span-2 font-semibold">Add a source</div>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Key (unique, no spaces)</span>
+      <input name="key" required placeholder="ubc_psych" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Label</span>
+      <input name="label" required placeholder="UBC — Department of Psychology" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+    </label>
+    <label class="grid gap-1 sm:col-span-2">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Directory URL</span>
+      <input name="start_url" required type="url" placeholder="https://psych.ubc.ca/faculty/" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Parser</span>
+      <select name="parser" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+        {% for p in parsers %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+      </select>
+      <span class="text-xs text-slate-400">
+        <code class="font-mono">mailto_directory</code> for pages that show addresses;
+        <code class="font-mono">profile_links</code> for name-only indexes.
+      </span>
+    </label>
+    <label class="grid gap-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400">University slug</span>
+      <input name="university_slug" required placeholder="ubc" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+    </label>
+    <label class="grid gap-1 sm:col-span-2">
+      <span class="text-xs text-slate-500 dark:text-slate-400">Notes</span>
+      <input name="notes" placeholder="What this page lists, and anything odd about it" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950" />
+    </label>
+    <button class="sm:col-span-2 justify-self-start px-4 py-2 rounded-xl bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-sm font-medium">Add source</button>
+  </form>
+
+  <!-- Runs -->
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold">Recent runs</div>
+    <div class="overflow-x-auto"><table class="min-w-full text-sm">
+      <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
+        <th class="px-4 py-3">Started</th><th class="px-4 py-3">Source</th><th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3">Pages</th><th class="px-4 py-3">Found</th><th class="px-4 py-3">New</th>
+        <th class="px-4 py-3">Updated</th><th class="px-4 py-3">Took</th><th class="px-4 py-3"></th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        {% for r in runs %}
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+          <td class="px-4 py-2.5 whitespace-nowrap text-slate-500 dark:text-slate-400">{{ r.started_at | dt }}</td>
+          <td class="px-4 py-2.5"><code class="font-mono text-xs">{{ r.source_key }}</code></td>
+          <td class="px-4 py-2.5">
+            {% set colors = {'success':'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+                             'failed':'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200',
+                             'blocked_by_robots':'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200',
+                             'running':'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-200'} %}
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ colors.get(r.status, 'bg-slate-100 dark:bg-slate-800') }}">{{ r.status }}</span>
+          </td>
+          <td class="px-4 py-2.5">{{ r.pages_fetched }}</td>
+          <td class="px-4 py-2.5">{{ r.records_found }}</td>
+          <td class="px-4 py-2.5 text-emerald-600 dark:text-emerald-400 font-medium">{{ r.records_created }}</td>
+          <td class="px-4 py-2.5">{{ r.records_updated }}</td>
+          <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">{{ r.duration_seconds or '—' }}s</td>
+          <td class="px-4 py-2.5"><a href="/admin/scraper/runs/{{ r.id }}" class="text-sky-700 dark:text-sky-400 hover:underline text-xs">Details</a></td>
+        </tr>
+        {% else %}
+          <tr><td colspan="9" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No runs yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+{% endblock %}

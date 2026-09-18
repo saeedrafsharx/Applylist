@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Database · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-semibold grad-text">The supervisor database</h1>
+    <p class="mt-2 text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+      Faculty entries collected from universities' own public directories, with the research
+      area and contact page for each — so you can find supervisors who actually match your topic.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+    {% for label, value in [
+        ('Faculty entries', totals.professors),
+        ('Universities', totals.universities),
+        ('Countries', totals.countries),
+        ('Role titles', totals.job_titles)] %}
+      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-center">
+        <div class="text-2xl font-semibold grad-text">{{ "{:,}".format(value) }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">{{ label }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if can_browse %}
+    <div class="grid sm:grid-cols-2 gap-5">
+      <a href="/database/professors" class="p-7 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+        <div class="text-2xl font-semibold">Search faculty</div>
+        <p class="mt-2 text-sm text-emerald-100/90">By name, research area, university or country. Save any entry straight into your contacts.</p>
+      </a>
+      <a href="/database/jobs" class="p-7 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-600 text-white shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+        <div class="text-2xl font-semibold">Browse role titles</div>
+        <p class="mt-2 text-sm text-sky-100/90">The actual names positions are advertised under, by field and level.</p>
+      </a>
+    </div>
+  {% else %}
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <h2 class="font-semibold">A sample of what's inside</h2>
+        <span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 text-xs font-medium">Pro feature</span>
+      </div>
+
+      {% if preview %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
+              <th class="px-4 py-3">Name</th>
+              <th class="px-4 py-3">University</th>
+              <th class="px-4 py-3">Research focus</th>
+              <th class="px-4 py-3">Email</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            {% for p in preview %}
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ p.name }}</td>
+              <td class="px-4 py-3">{{ p.university.name if p.university else '—' }}</td>
+              <td class="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-sm truncate">{{ p.research_focus or p.title or '—' }}</td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-400 select-none">{{ mask_email(p.email) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="p-10 text-center text-slate-500 dark:text-slate-400">
+          <div class="text-4xl mb-3">🗂️</div>
+          <p>The catalog is still being built. Check back soon.</p>
+        </div>
+      {% endif %}
+
+      <div class="p-6 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 text-center">
+        <p class="font-medium">Unlock full search and contact details</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Search every entry, filter by research area, and save contacts into your own list with one click.</p>
+        <a href="/pricing?feature=catalog" class="inline-block mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium shadow">See plans</a>
+      </div>
+    </div>
+  {% endif %}
+
+  <p class="mt-8 text-xs text-slate-500 dark:text-slate-400 text-center max-w-2xl mx-auto">
+    Entries come from pages universities publish themselves, and each one records the page it
+    came from and when it was last read. If you're listed here and would rather not be,
+    <a href="/database/takedown" class="underline">ask us to remove you</a> — no account needed.
+  </p>
+</div>
+{% endblock %}

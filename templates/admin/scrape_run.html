@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Scrape run #{{ run.id }} · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="max-w-3xl grid gap-5">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Run #{{ run.id }} · <code class="font-mono text-lg">{{ run.source_key }}</code></h1>
+    <a href="/admin/scraper" class="text-sm text-sky-700 dark:text-sky-400 hover:underline">← Scraper</a>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {% for label, value in [
+        ('Status', run.status), ('Pages fetched', run.pages_fetched),
+        ('Records found', run.records_found), ('Duration', (run.duration_seconds or 0) ~ 's'),
+        ('Created', run.records_created), ('Updated', run.records_updated),
+        ('Started', run.started_at | dt), ('Finished', run.finished_at | dt if run.finished_at else '—')] %}
+      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
+        <div class="mt-1 font-semibold">{{ value }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if run.error %}
+  <div class="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 p-5">
+    <div class="font-semibold text-rose-800 dark:text-rose-300 mb-1">Error</div>
+    <pre class="text-sm text-rose-700 dark:text-rose-400 whitespace-pre-wrap font-mono">{{ run.error }}</pre>
+  </div>
+  {% endif %}
+
+  {% if run.log and run.log.notes %}
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+    <div class="font-semibold mb-2">Run log</div>
+    <ul class="grid gap-1 text-sm font-mono text-slate-600 dark:text-slate-300">
+      {% for note in run.log.notes %}<li class="break-all">• {{ note }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if run.records_found == 0 and run.status == 'success' %}
+  <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-5 text-sm text-amber-900 dark:text-amber-200">
+    <strong>The run succeeded but found nothing.</strong> That usually means the page was
+    redesigned and the parser no longer matches it, not that the directory is empty. Open the
+    source URL and check what the markup looks like now.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Professors · ApplyList{% endblock %}
+{% block content %}
+<div class="grid gap-6">
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    {% for label, value, accent in [
+        ('Total contacts', stats.total, ''),
+        ('Emailed', stats.sent, 'text-emerald-600 dark:text-emerald-400'),
+        ('Awaiting first email', stats.pending, 'text-amber-600 dark:text-amber-400'),
+        ('Reminders sent', stats.reminders, 'text-fuchsia-600 dark:text-fuchsia-400')] %}
+      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
+        <div class="mt-1 text-2xl font-semibold {{ accent }}">{{ value }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if imported %}
+    <div class="px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 text-sm">
+      Import complete: <strong>{{ imported }}</strong> added, <strong>{{ updated }}</strong> updated, <strong>{{ skipped }}</strong> skipped.
+    </div>
+  {% endif %}
+
+  <!-- Add -->
+  <section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-5">
+    <h2 class="text-lg font-semibold mb-4 grad-text">Add a contact</h2>
+    <form action="/add" method="post" class="grid md:grid-cols-6 gap-3">
+      <input name="name" required placeholder="Name" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
+      <input name="university" required placeholder="University" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
+      <input name="contact_email" required type="email" placeholder="Email" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
+      <input name="research_focus" required placeholder="Research focus" class="md:col-span-3 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+      <input name="source_url" placeholder="Source URL" class="md:col-span-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-fuchsia-400 focus:outline-none" />
+      <input name="category" list="categories" placeholder="Category" value="{{ category }}" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-sky-400 focus:outline-none" />
+      <datalist id="categories">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="md:col-span-6">
+        <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-fuchsia-600 to-emerald-600 text-white font-medium shadow hover:opacity-95">Save contact</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Toolbar -->
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex flex-wrap gap-3 items-end justify-between">
+      <form method="get" action="/professors" class="flex flex-wrap gap-2 items-end">
+        <label class="grid gap-1">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Search</span>
+          <input name="q" value="{{ q }}" placeholder="name, university, topic…" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 w-56" />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Category</span>
+          <select name="category" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+            <option value="">All</option>
+            {% for c in categories %}<option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Sort</span>
+          <select name="sort" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+            {% for value, label in [('name','Name'), ('university','University'), ('email','Email'), ('category','Category'), ('recent','Recently added')] %}
+              <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white">Apply</button>
+        {% if q or category or sort != 'name' %}<a href="/professors" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">Clear</a>{% endif %}
+      </form>
+
+      <div class="flex gap-2 items-center">
+        <a href="/export.csv" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm">Export CSV</a>
+        <form action="/import.csv" method="post" enctype="multipart/form-data" class="flex gap-2 items-center">
+          <input type="file" name="file" accept=".csv,text/csv" required class="text-xs w-44 file:mr-2 file:px-2 file:py-1 file:rounded-lg file:border-0 file:bg-slate-100 dark:file:bg-slate-800 file:text-xs" />
+          <button class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm">Import</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- List -->
+  <section class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <h2 class="text-lg font-semibold grad-text">Contacts</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">{{ contacts|length }} shown</p>
+    </div>
+
+    {% if not contacts %}
+      <div class="p-12 text-center">
+        <div class="text-4xl mb-3">📇</div>
+        <p class="font-medium">{% if q or category %}Nothing matches that filter.{% else %}No contacts yet.{% endif %}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {% if q or category %}<a href="/professors" class="text-sky-600 dark:text-sky-400 hover:underline">Clear the filters</a> to see everything.
+          {% else %}Add one above, or find supervisors in the <a href="/database" class="text-sky-600 dark:text-sky-400 hover:underline">database</a>.{% endif %}
+        </p>
+      </div>
+    {% else %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 text-left">
+            <th class="px-4 py-3">Name</th>
+            <th class="px-4 py-3">University</th>
+            <th class="px-4 py-3">Research focus</th>
+            <th class="px-4 py-3">Email</th>
+            <th class="px-4 py-3">Category</th>
+            <th class="px-4 py-3">Emailed</th>
+            <th class="px-4 py-3">Sent at</th>
+            <th class="px-4 py-3">Reminder</th>
+            <th class="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for c in contacts %}
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+            <td class="px-4 py-3 font-medium whitespace-nowrap">
+              <span class="inline-block h-2 w-2 rounded-full mr-2 align-middle {{ 'bg-emerald-500' if c.email_sent else 'bg-slate-300 dark:bg-slate-600' }}"></span>{{ c.name }}
+            </td>
+            <td class="px-4 py-3">{{ c.university }}</td>
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-xs truncate" title="{{ c.research_focus }}">{{ c.research_focus }}</td>
+            <td class="px-4 py-3"><a class="text-sky-700 dark:text-sky-400 hover:underline" href="mailto:{{ c.contact_email }}">{{ c.contact_email }}</a></td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs">{{ c.category or 'General' }}</span></td>
+            <td class="px-4 py-3">
+              <form action="/toggle-email/{{ c.id }}" method="post">
+                <button class="px-3 py-1 rounded-full text-xs font-semibold {{ 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' if c.email_sent else 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200' }}">
+                  {{ 'Sent' if c.email_sent else 'Not sent' }}
+                </button>
+              </form>
+            </td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ c.email_sent_at | dt if c.email_sent_at else '—' }}</td>
+            <td class="px-4 py-3">
+              <form action="/toggle-reminder/{{ c.id }}" method="post">
+                <button class="px-3 py-1 rounded-full text-xs font-semibold {{ 'bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white' if c.reminder_sent else 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200' }}">
+                  {{ 'Sent' if c.reminder_sent else 'Not sent' }}
+                </button>
+              </form>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2 justify-end">
+                {% if can_ai %}
+                  <a href="/assistant/draft?contact_id={{ c.id }}" title="Draft an email with the assistant"
+                     class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-violet-600 text-white hover:opacity-90">Draft</a>
+                {% endif %}
+                <a href="/edit/{{ c.id }}" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 text-white hover:opacity-90">Edit</a>
+                <form action="/delete/{{ c.id }}" method="post" onsubmit="return confirm('Delete {{ c.name }}? This cannot be undone.')">
+                  <button class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:opacity-90">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

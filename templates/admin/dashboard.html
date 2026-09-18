@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Admin · ApplyList{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid gap-6">
+  <div class="flex flex-wrap gap-2">
+    {% for label, ok in [('Email', health.email), ('Payments', health.payments), ('AI', health.ai)] %}
+      <span class="px-3 py-1 rounded-full text-xs font-medium
+                   {% if ok %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200
+                   {% else %}bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200{% endif %}">
+        {{ label }}: {{ 'configured' if ok else 'not configured' }}
+      </span>
+    {% endfor %}
+  </div>
+
+  <section>
+    <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3">Users</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {% for label, value, hint in [
+          ('Total users', stats.users_total, stats.users_verified ~ ' verified'),
+          ('New this week', stats.users_new_week, ''),
+          ('Active today', stats.users_active_day, ''),
+          ('Active this month', stats.users_active_month, ''),
+          ('Unverified', stats.users_unverified, 'never confirmed email')] %}
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
+          <div class="mt-1 text-2xl font-semibold">{{ "{:,}".format(value) }}</div>
+          {% if hint %}<div class="mt-0.5 text-xs text-slate-400">{{ hint }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3">Revenue and subscriptions</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {% for label, value, accent in [
+          ('Active subscriptions', "{:,}".format(stats.subs_active), 'text-emerald-600 dark:text-emerald-400'),
+          ('Conversion', stats.conversion ~ '%', ''),
+          ('Revenue (30d)', "{:,}".format(stats.revenue_month_toman) ~ ' T', 'text-emerald-600 dark:text-emerald-400'),
+          ('Revenue (all time)', "{:,}".format(stats.revenue_total_toman) ~ ' T', ''),
+          ('Pending payments', stats.payments_pending, 'text-amber-600 dark:text-amber-400')] %}
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
+          <div class="mt-1 text-2xl font-semibold {{ accent }}">{{ value }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    {% if plan_counts %}
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
+        {% for name, count in plan_counts %}
+          <span class="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800">{{ name }}: <strong>{{ count }}</strong></span>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3">Content and usage</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      {% for label, value in [
+          ('Contacts tracked', stats.contacts), ('Positions tracked', stats.positions),
+          ('Catalog entries', stats.catalog_professors), ('Universities', stats.catalog_universities),
+          ('AI replies (30d)', stats.ai_messages_month), ('AI tokens (30d)', stats.ai_tokens_month)] %}
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ label }}</div>
+          <div class="mt-1 text-xl font-semibold">{{ "{:,}".format(value) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    {% if stats.takedowns_open %}
+      <a href="/admin/takedowns" class="inline-block mt-3 px-4 py-2 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-sm font-medium">
+        {{ stats.takedowns_open }} takedown request{{ '' if stats.takedowns_open == 1 else 's' }} waiting →
+      </a>
+    {% endif %}
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+    <h2 class="font-semibold mb-4">Activity, last 30 days</h2>
+    {% set peak = (activity_series | map(attribute=1) | max) or 1 %}
+    <div class="flex items-end gap-1 h-32">
+      {% for day, count in activity_series %}
+        <div class="flex-1 bg-gradient-to-t from-sky-600 to-fuchsia-500 rounded-t hover:opacity-80 transition"
+             style="height: {{ (100 * count / peak)|round|int }}%; min-height: 2px"
+             title="{{ day }}: {{ count }} events"></div>
+      {% endfor %}
+    </div>
+    <div class="flex justify-between mt-2 text-xs text-slate-400">
+      <span>{{ activity_series[0][0] if activity_series else '' }}</span>
+      <span>peak {{ peak }}/day</span>
+      <span>{{ activity_series[-1][0] if activity_series else '' }}</span>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+      <h2 class="font-semibold">Latest activity</h2>
+      <a href="/admin/activity" class="text-sm text-sky-700 dark:text-sky-400 hover:underline">See all →</a>
+    </div>
+    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      {% for a in recent %}
+      <div class="px-5 py-2.5 flex flex-wrap gap-x-4 gap-y-1 text-sm items-baseline">
+        <span class="text-xs text-slate-400 w-32 shrink-0">{{ a.created_at | dt('%m-%d %H:%M') }}</span>
+        <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{{ a.action }}</span>
+        {% if a.user %}<a href="/admin/users/{{ a.user.id }}" class="text-sky-700 dark:text-sky-400 hover:underline">{{ a.user.username }}</a>{% endif %}
+        <span class="text-slate-600 dark:text-slate-300">{{ a.summary or '' }}</span>
+      </div>
+      {% else %}
+        <div class="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">Nothing logged yet.</div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

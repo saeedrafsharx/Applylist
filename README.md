@@ -1,131 +1,132 @@
-# ApplyList · Contact Tracker for Grad/Research Applications
+# ApplyList · Application tracker for grad school and research jobs
 
-> A friendly, colorful web app to **track professors, labs, and outreach** while applying for **Master’s/PhD** — especially popular with students applying from **Iran to Canada/US/Europe** in **Neuroscience, ML, and CS**.
+> Track professors, labs, and open positions while you apply for **Master's/PhD**, research posts,
+> and academic jobs — instead of a spreadsheet that falls apart in week three.
 
-🌐 **Use it now:** **[http://applylist.ir/](http://applylist.ir/)**
-🧑‍💻 **Open‑source:** MIT‑licensed — clone, fork, remix.
-
-<div align="center">
-
-**Organize. Email. Follow up. Win.**
-
-🎓 🧠 🤖 🔬 📧 ⏰ ✅
-
-</div>
+🌐 **Live:** [applylist.ir](http://applylist.ir/) · 🧑‍💻 **MIT licensed**
 
 ---
 
-## Why ApplyList?
+## What it does
 
-Applying is chaotic — names, universities, research areas, emails, reminders… 😵‍💫
-ApplyList gives you a calm, private space to manage it all.
+**Free, for everyone:**
+- 📇 **Contact cards** — name, university, research focus, email, source link, notes
+- ✉️ **Email + reminder status** — one click, timestamped
+- 🎯 **Positions** — PhD calls, fellowships, RA posts, with deadlines and an application status
+- 📤 **CSV import/export** — bring your existing spreadsheet, take your data with you
+- 🔒 **Private per account**, with email-verified signup
 
-* 📇 **Contact cards** — Name, University, Research Focus, Email, Source link
-* ✉️ **Email status** — one click; saves the **date & time**
-* 🔁 **Reminder status** — track follow‑ups without spreadsheets
-* 🔒 **Per‑user dashboard** — your list is private to you
-* 🌈 **Modern UI** — Tailwind CSS, soft gradients, mobile friendly
-* ⚡ **Fast** — FastAPI + SQLite, minimal friction
+**Pro:**
+- 🗂️ **Supervisor database** — faculty entries mirrored from universities' own public directories, searchable by research area, savable straight into your list
+- ✨ **AI assistant** — drafts cold emails and follow-ups against the contacts you already track, reviews your own drafts, answers questions about the process. English or Persian.
 
-> Built to help **Iranian students** and other international applicants stay organized for **grad school**, **RA/Internship**, and **scholarship** outreach.
-
----
-
-## Live Demo (Screenshots)
-
-> These are example shots; your data stays private. Replace with your own if you self‑host (see below).
-
-<p align="center">
-  <img src="docs/login.png" alt="ApplyList login page screenshot" width="720"/>
-</p>
-
-<p align="center">
-  <img src="docs/dashboard.png" alt="ApplyList dashboard — contact list, email & reminder statuses" width="720"/>
-</p>
-
-<p align="center">
-  <img src="docs/register.png" alt="ApplyList register contact form" width="720"/>
-</p>
-
-**How to add real screenshots:** open **[http://applylist.ir/](http://applylist.ir/)** → take 3 captures (Login, Dashboard, Edit) → save under `docs/` with the names above. The README will render them automatically on GitHub.
+**For the operator:**
+- 📊 **Admin panel** — users, subscriptions, payments, activity log, catalog editing, scraper control, takedown queue
 
 ---
 
-## Quick Start (hosted)
+## Running it
 
-1. Visit **[http://applylist.ir/](http://applylist.ir/)**
-2. Create an account (free) ✅
-3. Add professors/labs (e.g., McGill IPN, Queen’s CNS)
-4. Click **Email Sent** after you send an email — timestamp is saved
-5. Click **Reminder Sent** when you follow up
-6. Filter/search in your browser; export by printing the page to PDF if needed
-
----
-
-## Tailored for your journey
-
-**Great fit if you’re:**
-
-* Applying from **Iran** to **Canada/US/Europe** 🎯
-* Interested in **Neuroscience / ML / CS / Imaging** 🧠🤖
-* Tracking potential advisors at **McGill, Queen’s, UofT, UBC, EPFL, ETH, MIT, Stanford**
-* Sending cold emails, keeping notes, and planning reminders
-
-**Seeds included:** a small starter list featuring supervisors from **McGill IPN** and **Queen’s CNS** to get you moving fast.
-
----
-
-## Features at a glance
-
-* Add / Edit / Delete contacts
-* Email + Reminder toggles (with sent date for emails)
-* Source URL field (where you found the lab/professor)
-* Clean, colorful design; mobile‑ready
-* Private per‑user panels
-
----
-
-## Self‑hosting (optional)
-
-If you prefer your own server:
+### Docker (everything)
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+cp .env.example .env    # then edit it — at minimum SECRET_KEY and DATABASE_URL
+docker-compose up --build
+```
+
+Open <http://localhost:8000>. The entrypoint waits for Postgres and applies migrations before serving.
+
+### Local development
+
+```bash
+docker-compose up -d db          # just Postgres
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Open **[http://localhost:8000](http://localhost:8000)**. For production, run under systemd + Nginx. The app uses SQLite by default.
+Run from the repo root — template and static paths are relative to the working directory.
+
+With `SMTP_HOST` unset, verification emails are written to the application log instead of sent, so you can sign up locally without a mail server. Look for the `/verify-email/<token>` link in the console.
+
+### Tests
+
+```bash
+docker-compose exec db createdb -U applylist applylist_test
+pytest
+```
+
+The suite needs a real Postgres (the app uses JSONB, `date_trunc`, `ilike`) and **drops and recreates the `public` schema** of whatever `TEST_DATABASE_URL` points at. Never aim it at a database you care about. No network is used — SMTP, Zarinpal, and Claude are all disabled in the fixtures.
 
 ---
 
-## Contribute 💚
+## Configuration
 
-* Translate the UI/README (Farsi welcome!)
-* Improve UX or add small features
-* University‑specific templates (e.g., email drafts for McGill, UBC, EPFL)
-* Open issues with ideas or bugs
+Every setting is an environment variable; `.env.example` lists them all with comments. The ones that matter:
 
-If it helps your applications, please ⭐ the repo — it helps other students discover it.
+| Variable | Why it matters |
+|---|---|
+| `SECRET_KEY` | Signs session cookies. **Leaving the default in production means anyone can forge a session.** |
+| `DATABASE_URL` | Postgres. `postgres://` and `postgresql://` are accepted and rewritten. |
+| `BASE_URL` | Used to build verification and payment-callback links. Must be the real public URL. |
+| `SMTP_*` | Without these, signup verification emails are logged, not delivered. |
+| `ZARINPAL_MERCHANT_ID` | Enables online payment. Keep `ZARINPAL_SANDBOX=true` until you've tested the full loop. |
+| `ANTHROPIC_API_KEY` | Enables the AI assistant. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Creates or promotes the first admin on boot. |
 
----
-
-## Privacy & License
-
-* Your list is private to your account on **applylist.ir**
-* The code is **MIT‑licensed** — free to use, modify, and deploy
-
----
-
-## SEO (so students find it!)
-
-**Keywords:** grad school contact tracker, professor outreach tool, supervisor list app, research application organizer, PhD applications Iran, Master’s applications Canada, neuroscience supervisor tracker, machine learning lab contact list, open source student CRM, FastAPI Tailwind contact tracker, apply list, applylist.
-
-**Description:** ApplyList is an open‑source, student‑friendly web app to track professors, labs, and outreach for graduate school and research applications. Built with FastAPI, Tailwind, and SQLite. Use it free at [http://applylist.ir/](http://applylist.ir/).
+Each integration degrades on its own: an unset key disables that feature and says so on the admin dashboard, rather than breaking the app.
 
 ---
 
-## Thank you 🙏
+## Going to production
 
-Built by students, for students. Best of luck with your applications — you’ve got this! 🎉
+1. **Set `SECRET_KEY`** to something random — `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Do not skip this.
+2. **Set `ENVIRONMENT=production`.** This turns on `https_only` session cookies and hides `/api/docs`.
+3. **Set `BASE_URL`** to your real HTTPS URL, or verification and payment callbacks will point at localhost.
+4. **Configure SMTP** — without it nobody can confirm their email, and verification gates every dashboard.
+5. **Test Zarinpal in sandbox first**, all the way through: subscribe → gateway → callback → subscription active.
+6. **Back up Postgres.** Nothing in here backs itself up.
+7. **Set `ADMIN_EMAIL` / `ADMIN_PASSWORD`**, sign in, then remove `ADMIN_PASSWORD` from the environment.
+
+---
+
+## The catalog, and how it is collected
+
+The supervisor database mirrors faculty directory pages that universities publish openly. The crawler:
+
+- identifies itself with a contactable `User-Agent`
+- reads and obeys `robots.txt`, including `Crawl-delay`
+- rate-limits per host and caps pages per run
+- records the **source URL and timestamp on every entry**, so any row can be traced back and re-checked
+- is triggered by hand from the admin panel, per source — nothing crawls on a schedule
+- skips generic addresses (`admissions@`, `info@`) — those are not people
+
+**Removal:** anyone listed can ask to be taken off at `/database/takedown` **without creating an account**. The entry is unpublished immediately, before a human reviews it, and a later scrape will not bring it back.
+
+If you deploy this and charge for catalog access, the legal position on republishing personal contact data — GDPR in the EU, PIPEDA in Canada — is yours to get right. The provenance tracking and takedown flow exist to make that possible, not to settle it.
+
+---
+
+## Stack
+
+FastAPI · SQLAlchemy 2.0 · Alembic · PostgreSQL · Jinja2 · Tailwind (CDN) · Zarinpal · Claude (`claude-opus-5`)
+
+No frontend build step. Server-rendered HTML throughout.
+
+---
+
+## Contributing
+
+- Translate the UI (Farsi especially welcome)
+- Add scraper parsers for more university directories
+- University-specific email templates
+- Open an issue with ideas or bugs
+
+If it helps your applications, ⭐ the repo so other students find it.
+
+---
+
+## License
+
+MIT. Built by students, for students. Good luck with your applications. 🎓

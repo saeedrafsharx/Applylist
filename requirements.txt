@@ -1,12 +1,27 @@
+# ── web ─────────────────────────────────────────────────────────
 fastapi==0.115.6
 starlette==0.41.3
 uvicorn[standard]==0.34.0
 jinja2==3.1.6
-sqlmodel==0.0.22
-pydantic==2.10.5
 python-multipart==0.0.20
 itsdangerous==2.2.0
-passlib==1.7.4
-email-validator==2.2.0
-pydantic[email]
 
+# ── data ────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg[binary]==3.2.3
+
+# ── config / validation ─────────────────────────────────────────
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# ── auth ────────────────────────────────────────────────────────
+bcrypt==4.2.1
+
+# ── outbound ────────────────────────────────────────────────────
+httpx==0.28.1
+anthropic>=1.0,<2.0
+
+# ── scraping ────────────────────────────────────────────────────
+selectolax==0.3.27

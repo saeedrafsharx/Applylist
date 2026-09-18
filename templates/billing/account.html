@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Your account · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto grid gap-5">
+  <h1 class="text-2xl font-semibold grad-text">Your account</h1>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+    <div class="grid sm:grid-cols-2 gap-4 text-sm">
+      <div><span class="text-slate-500 dark:text-slate-400">Username</span><div class="font-medium">{{ user.username }}</div></div>
+      <div><span class="text-slate-500 dark:text-slate-400">Email</span>
+        <div class="font-medium">{{ user.email }}
+          {% if user.is_email_verified %}<span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400">verified</span>
+          {% else %}<a href="/verify-email" class="ml-1 text-xs text-amber-600 dark:text-amber-400 underline">confirm</a>{% endif %}
+        </div>
+      </div>
+      <div><span class="text-slate-500 dark:text-slate-400">Member since</span><div class="font-medium">{{ user.created_at | dt('%B %Y') }}</div></div>
+      <div><span class="text-slate-500 dark:text-slate-400">Current plan</span>
+        <div class="font-medium">
+          {% if subscription %}{{ subscription.plan.name }}
+            {% if subscription.expires_at %}<span class="text-xs text-slate-500 dark:text-slate-400">· {{ subscription.days_remaining }} days left</span>
+            {% else %}<span class="text-xs text-slate-500 dark:text-slate-400">· lifetime</span>{% endif %}
+          {% else %}Free{% endif %}
+        </div>
+      </div>
+    </div>
+    {% if not subscription %}
+      <a href="/pricing" class="inline-block mt-5 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white font-medium">Upgrade to Pro</a>
+    {% else %}
+      <a href="/pricing" class="inline-block mt-5 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700">Extend or change plan</a>
+    {% endif %}
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold">Payment history</div>
+    {% if not payments %}
+      <div class="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No payments yet.</div>
+    {% else %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead><tr class="bg-slate-50 dark:bg-slate-800/60 text-left">
+          <th class="px-4 py-2.5">Date</th><th class="px-4 py-2.5">Plan</th>
+          <th class="px-4 py-2.5">Amount</th><th class="px-4 py-2.5">Status</th><th class="px-4 py-2.5">Reference</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for p in payments %}
+          <tr>
+            <td class="px-4 py-2.5 whitespace-nowrap">{{ (p.paid_at or p.created_at) | dt('%Y-%m-%d') }}</td>
+            <td class="px-4 py-2.5">{{ p.plan.name if p.plan else '—' }}</td>
+            <td class="px-4 py-2.5">{{ "{:,}".format(p.amount_toman) }} T</td>
+            <td class="px-4 py-2.5">
+              {% set colors = {'paid':'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+                               'pending':'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200',
+                               'failed':'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200',
+                               'canceled':'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'} %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ colors.get(p.status, colors['canceled']) }}">{{ p.status }}</span>
+            </td>
+            <td class="px-4 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">{{ p.ref_id or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Payment confirmed' if ok else 'Payment failed' }} · ApplyList{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-8">
+  <div class="gradient-card rounded-2xl bg-white dark:bg-slate-900 shadow p-7 text-center">
+    <div class="text-5xl mb-3">{{ '🎉' if ok else '⚠️' }}</div>
+    <h1 class="text-2xl font-semibold mb-2 {{ 'grad-text' if ok else 'text-rose-600 dark:text-rose-400' }}">
+      {{ 'Payment confirmed' if ok else 'Payment not completed' }}
+    </h1>
+    <p class="text-slate-600 dark:text-slate-300">{{ message }}</p>
+
+    {% if payment %}
+    <dl class="mt-6 grid gap-2 text-sm text-left rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Plan</dt><dd class="font-medium">{{ payment.plan.name if payment.plan else '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Amount</dt><dd class="font-medium">{{ "{:,}".format(payment.amount_toman) }} Toman</dd></div>
+      {% if payment.ref_id %}<div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Reference</dt><dd class="font-mono text-xs">{{ payment.ref_id }}</dd></div>{% endif %}
+      {% if payment.card_pan %}<div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Card</dt><dd class="font-mono text-xs">{{ payment.card_pan }}</dd></div>{% endif %}
+      {% if subscription and subscription.expires_at %}
+        <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Valid until</dt><dd class="font-medium">{{ subscription.expires_at | dt('%Y-%m-%d') }}</dd></div>
+      {% endif %}
+    </dl>
+    {% endif %}
+
+    <div class="mt-6 flex gap-3 justify-center">
+      {% if ok %}
+        <a href="/database" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium">Open the database</a>
+        <a href="/assistant" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-medium">Try the assistant</a>
+      {% else %}
+        <a href="/pricing" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-fuchsia-600 text-white font-medium">Try again</a>
+        <a href="/billing" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700">Payment history</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
